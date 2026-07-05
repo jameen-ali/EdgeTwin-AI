@@ -6,8 +6,20 @@ export const APP_VERSION = '1.0.0';
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-// Use relative path to leverage Vite proxy in dev, or the same host in prod
-export const WS_BASE_URL  = (import.meta.env.VITE_WS_URL  ?? (typeof window !== 'undefined' ? `ws://${window.location.host}` : 'ws://localhost:8000')).replace(/\/$/, '');
+
+// Safely determine WS protocol and base URL
+const defaultWsUrl = typeof window !== 'undefined' 
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}` 
+  : 'ws://localhost:8000';
+
+let rawWsUrl = (import.meta.env.VITE_WS_URL ?? defaultWsUrl).replace(/\/$/, '');
+
+// Force wss:// if we are loaded over https (fixes Vercel mixed content error)
+if (typeof window !== 'undefined' && window.location.protocol === 'https:' && rawWsUrl.startsWith('ws://')) {
+  rawWsUrl = rawWsUrl.replace('ws://', 'wss://');
+}
+
+export const WS_BASE_URL = rawWsUrl;
 export const API_PREFIX   = '/api/v1';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
