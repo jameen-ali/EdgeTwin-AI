@@ -19,7 +19,7 @@ import json
 # Setup
 API_URL = os.environ.get("VITE_API_URL", "http://localhost:8000") + "/api/v1"
 ADMIN_EMAIL = "admin@edgetwin.ai"
-ADMIN_PASS = "Admin@EdgeTwin24!"
+ADMIN_PASS = "EdgeTwin@2026"
 
 def get_token():
     print("🔑 Authenticating as System Admin...")

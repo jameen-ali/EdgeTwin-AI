@@ -13,8 +13,7 @@ import random
 import requests
 import os
 import sys
-from datetime import datetime, timezone
-import json
+from datetime import datetime
 
 # Setup
 API_URL = os.environ.get("VITE_API_URL", "http://localhost:8000") + "/api/v1"
@@ -43,7 +42,6 @@ def get_machines(token: str):
 def generate_reading(machine: dict):
     """Generate realistic telemetry data based on machine type and current status."""
     status = machine.get("status", "normal")
-    type_ = machine.get("type", "").lower()
     
     # Base values
     temp_base = 45.0
