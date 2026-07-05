@@ -48,13 +48,21 @@ def seed_db():
     print("EdgeTwin AI — Full Database Seed")
     print("=" * 60)
 
-    print("\n[1/9] Dropping and recreating all tables...")
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    
     db = SessionLocal()
     
     try:
+        # Check if already seeded
+        try:
+            user_count = db.query(User).count()
+            if user_count > 0:
+                print("\n✅ Database is already seeded. Skipping full seed.")
+                return
+        except Exception:
+            pass # Tables might not exist yet
+
+        print("\n[1/9] Dropping and recreating all tables...")
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
         # ─── Users ────────────────────────────────────────────────────
         print("[2/9] Seeding Users...")
         pwd_hash = _hash("EdgeTwin@2026")

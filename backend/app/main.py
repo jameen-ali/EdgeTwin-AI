@@ -13,15 +13,33 @@ async def lifespan(app: FastAPI):
     # Create all tables on startup (dev — use Alembic in prod)
     Base.metadata.create_all(bind=engine)
 
-    # Seed demo data on first startup (idempotent — safe to run every time)
-    if settings.DEBUG:
+    # Auto-seed the full database if it is empty
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    
+    try:
+        from scripts.seed_full_db import seed_db
+        seed_db()
+    except Exception as exc:
+        import logging
+        logging.getLogger("edgetwin").warning(f"Full seeder failed: {exc}")
+
+    # Start IoT Simulator in the background so telemetry flows automatically
+    import threading
+    import time
+    def delayed_simulator():
+        time.sleep(5) # Wait for FastAPI to start accepting requests
         try:
-            from app.seeds.seed_users import seed
-            seed()
-        except Exception as exc:
-            # Never crash startup due to seed failure
+            # Tell simulator to use localhost since it's running in the same container
+            os.environ["VITE_API_URL"] = "http://localhost:8000"
+            from scripts.sensor_simulator import run_simulation
+            run_simulation()
+        except Exception as e:
             import logging
-            logging.getLogger("edgetwin").warning(f"Seeder skipped: {exc}")
+            logging.getLogger("edgetwin").error(f"Simulator crashed: {e}")
+
+    threading.Thread(target=delayed_simulator, daemon=True).start()
 
     yield
 
