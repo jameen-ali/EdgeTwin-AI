@@ -1,0 +1,5 @@
+# Gitignore for seeds directory
+# demo_credentials.json contains plain-text passwords — never commit to git
+demo_credentials.json
+*.pyc
+__pycache__/
