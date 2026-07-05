@@ -247,7 +247,7 @@ def _seed_mechanic_profiles(session) -> None:
             {"id": m["mechanic_id"]},
         ).fetchone()
         if exists:
-            print(f"   Skipped mechanic profile (already exists)")
+            print("   Skipped mechanic profile (already exists)")
             continue
         session.execute(
             text("""

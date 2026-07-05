@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 from uuid import UUID
 import math
 
 from app.core.database import get_db
-from app.core.dependencies import CurrentUser, require_roles
+from app.core.dependencies import CurrentUser
 from app.models.user import UserRole, User
 from app.models.ticket import Ticket, TicketStatus
 from app.models.machine import Machine
@@ -44,7 +43,6 @@ def get_tickets(
         machine = db.query(Machine).filter(Machine.machine_id == t.machine_id).first()
         operator = db.query(User).filter(User.user_id == t.operator_id).first()
         mechanic = db.query(User).filter(User.user_id == t.mechanic_id).first() if t.mechanic_id else None
-        manager = db.query(User).filter(User.user_id == t.manager_id).first() if t.manager_id else None
         
         t_dict = {c.name: getattr(t, c.name) for c in t.__table__.columns}
         t_dict["machine_name"] = machine.name if machine else None

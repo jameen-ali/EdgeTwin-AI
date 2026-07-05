@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -8,7 +8,7 @@ from app.core.dependencies import CurrentUser, require_roles
 from app.models.user import UserRole
 from app.models.alert import Alert, AlertStatus, OperatorResponse
 from app.models.machine import Machine
-from app.schemas.alert import AlertResponse, AlertUpdate
+from app.schemas.alert import AlertResponse
 
 router = APIRouter()
 

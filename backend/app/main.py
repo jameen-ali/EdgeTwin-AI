@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.api.v1.router import api_router
+from app.websocket.events import ws_router
 
 
 @asynccontextmanager
@@ -48,7 +49,6 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # ─── WebSocket Router ─────────────────────────────────────────────────────────
-from app.websocket.events import ws_router
 app.include_router(ws_router)
 
 

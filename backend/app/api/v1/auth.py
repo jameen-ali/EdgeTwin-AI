@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token, create_refresh_token, decode_token
@@ -19,7 +20,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-from uuid import UUID
 
 class UserOut(BaseModel):
     user_id: UUID
@@ -44,7 +44,7 @@ def login(
 ):
     user = db.query(User).filter(
         User.email == form_data.username,
-        User.is_active == True,
+        User.is_active,
     ).first()
 
     if not user or not verify_password(form_data.password, user.password_hash):

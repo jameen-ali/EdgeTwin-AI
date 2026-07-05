@@ -17,7 +17,6 @@ from app.models.cost_log import CostLog
 from app.models.mechanic import Mechanic
 from app.models.audit_log import AuditLog
 from app.models.production_schedule import ProductionSchedule
-from app.models.notification import Notification
 
 import bcrypt
 
@@ -381,9 +380,9 @@ def seed_db():
         print("\n" + "=" * 60)
         print("✅ DATABASE SEEDING COMPLETED SUCCESSFULLY!")
         print("=" * 60)
-        print(f"\nLogin Credentials (all users):")
-        print(f"  Password: EdgeTwin@2026")
-        print(f"\nUsers:")
+        print("\nLogin Credentials (all users):")
+        print("  Password: EdgeTwin@2026")
+        print("\nUsers:")
         for u in DEMO_USERS:
             print(f"  {u['role']:25s} → {u['email']}")
         print()

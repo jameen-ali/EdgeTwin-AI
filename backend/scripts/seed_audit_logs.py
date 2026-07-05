@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.core.database import engine, Base, SessionLocal
+from app.core.database import SessionLocal
 from app.models.audit_log import AuditLog
 from app.models.user import User
 

@@ -30,7 +30,7 @@ def get_current_user(
     except (JWTError, ValueError):
         raise credentials_exception
 
-    user = db.query(User).filter(User.user_id == user_id_uuid, User.is_active == True).first()
+    user = db.query(User).filter(User.user_id == user_id_uuid, User.is_active).first()
     if user is None:
         raise credentials_exception
     return user

@@ -2,7 +2,6 @@ import sys
 import os
 from celery import Celery
 from sqlalchemy.orm import Session
-import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 

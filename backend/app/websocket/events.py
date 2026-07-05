@@ -1,5 +1,4 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Optional
 from app.websocket.manager import manager
 from jose import jwt, JWTError
 from app.core.config import settings
@@ -14,7 +13,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
     try:
         # Validate token
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         user_id = payload.get("sub")
         if user_id is None:

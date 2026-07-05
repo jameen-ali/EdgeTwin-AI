@@ -1,4 +1,3 @@
-import uuid
 import json
 from datetime import datetime, timezone
 import bcrypt

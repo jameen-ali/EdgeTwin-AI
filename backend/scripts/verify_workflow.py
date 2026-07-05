@@ -1,6 +1,5 @@
 import asyncio
 import httpx
-from datetime import datetime
 
 BASE_URL = "http://localhost:8000/api/v1"
 
@@ -36,8 +35,6 @@ async def verify_workflow():
         # 3. Create a ticket (simulate operator reporting issue)
         # First get a machine and alert
         resp = await client.get("/machines", headers=headers)
-        machines = resp.json()
-        machine = machines[0]
         
         # We need an alert ID. Let's get active alerts
         resp = await client.get("/alerts?status=pending", headers=headers)

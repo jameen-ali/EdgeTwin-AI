@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
 from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.dependencies import CurrentUser
 from app.models.machine import Machine, MachineStatus
-from app.models.ml_prediction import MLPrediction
 from app.models.ticket import Ticket, TicketStatus
 from app.models.production_schedule import ProductionSchedule
 from app.models.notification import Notification
