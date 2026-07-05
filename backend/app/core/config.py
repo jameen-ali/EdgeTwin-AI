@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://edge-twin-ai-nine.vercel.app",
     ]
 
     class Config:
