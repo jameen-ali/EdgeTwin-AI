@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { WS_BASE_URL } from '@/constants';
 import type { Notification, NotificationType } from '@/types';
 
 interface NotificationContextType {
@@ -21,9 +22,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!user || !token) return;
 
-    // Determine WS URL based on current origin
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/ws?token=${token}`;
+    // Use the global WS_BASE_URL from constants
+    const wsUrl = `${WS_BASE_URL}/ws?token=${token}`;
     
     const ws = new WebSocket(wsUrl);
 

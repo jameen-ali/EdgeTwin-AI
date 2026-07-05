@@ -5,9 +5,9 @@ export const APP_VERSION = '1.0.0';
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 // Use relative path to leverage Vite proxy in dev, or the same host in prod
-export const WS_BASE_URL  = import.meta.env.VITE_WS_URL  ?? (typeof window !== 'undefined' ? `ws://${window.location.host}` : 'ws://localhost:8000');
+export const WS_BASE_URL  = (import.meta.env.VITE_WS_URL  ?? (typeof window !== 'undefined' ? `ws://${window.location.host}` : 'ws://localhost:8000')).replace(/\/$/, '');
 export const API_PREFIX   = '/api/v1';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
