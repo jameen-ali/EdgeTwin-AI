@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import type { Notification } from '@/types';
+import type { Notification, NotificationType } from '@/types';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -16,7 +16,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+  // WebSocket connection managed inside useEffect
 
   useEffect(() => {
     if (!user || !token) return;
@@ -54,7 +54,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             id: data.payload.alert_id || data.payload.ticket_id || Date.now().toString(),
             title: data.type === 'alert_new' ? 'New Critical Alert' : 'Ticket Updated',
             message: data.payload.message || 'System status changed',
-            type: data.payload.severity === 'critical' ? 'error' : 'info',
+            type: data.type as NotificationType,
             read: false,
             timestamp: data.timestamp || new Date().toISOString(),
             link: data.type === 'alert_new' ? '/operator/alerts' : '/maintenance/tickets',
@@ -65,7 +65,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           toast({
             title: newNotif.title,
             description: newNotif.message,
-            variant: newNotif.type === 'error' ? 'destructive' : 'default',
+            variant: data.payload.severity === 'critical' ? 'destructive' : 'default',
           });
         }
       } catch (e) {
@@ -73,8 +73,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     };
 
-    setSocket(ws);
-
+    // Optional: store ws ref if needed elsewhere
     return () => {
       ws.close();
     };

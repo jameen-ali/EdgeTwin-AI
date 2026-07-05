@@ -6,7 +6,7 @@ import { ROLE_DASHBOARD_ROUTES } from '@/constants';
 
 export function useAuth() {
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
+  const { user, isAuthenticated, isLoading, accessToken } = useAppSelector((s) => s.auth);
 
   const signOut = async () => {
     try {
@@ -33,5 +33,6 @@ export function useAuth() {
     hasRole,
     dashboardRoute,
     role: user?.role,
+    token: accessToken,
   };
 }

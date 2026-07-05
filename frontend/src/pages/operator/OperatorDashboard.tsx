@@ -46,7 +46,7 @@ export default function OperatorDashboard() {
               status: 'active',
               triggered_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
             }
-          ] as Alert[];
+          ] as unknown as Alert[];
         }
         
         setMachines(machinesData || []);

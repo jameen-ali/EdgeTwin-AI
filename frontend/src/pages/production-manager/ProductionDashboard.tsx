@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/layout/LoadingScreen';
 import { useToast } from '@/hooks/useToast';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
-import type { RiskOverview, ProductionImpact } from '@/types';
+import type { RiskOverview } from '@/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchProductionData, reallocateProductionLoad } from '@/store/productionSlice';
 

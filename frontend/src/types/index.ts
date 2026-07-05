@@ -225,6 +225,7 @@ export interface Notification {
   timestamp: string;
   read: boolean;
   entity_id?: string;
+  link?: string;
 }
 
 // ─── WebSocket Events ─────────────────────────────────────────────────────────

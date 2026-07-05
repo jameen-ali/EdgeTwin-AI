@@ -7,7 +7,6 @@ import {
   Users, 
   Activity, 
   Factory, 
-  BarChart3, 
   Cpu, 
   X,
   AlertCircle

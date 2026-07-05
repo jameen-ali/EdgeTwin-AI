@@ -1,6 +1,6 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, Grid, Environment, ContactShadows, useGLTF, Clone } from '@react-three/drei';
+import { OrbitControls, Html, Grid, ContactShadows, useGLTF, Clone } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Machine, SensorReading } from '@/types';
 import { clsx } from 'clsx';
@@ -43,7 +43,7 @@ function MachineModel({
   const [hovered, setHovered] = useState(false);
 
   // Rotate machine part based on RPM
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (meshRef.current && sensor && machine.status !== 'offline') {
       // Base rotation speed on RPM, scaled down for visual comfort
       const rpm = sensor.rpm || 0;
@@ -55,7 +55,6 @@ function MachineModel({
   const color = STATUS_COLORS[machine.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.offline;
 
   // Determine geometry based on type (simple heuristic)
-  const isCylinder = machine.type.toLowerCase().includes('compressor') || machine.type.toLowerCase().includes('turbine');
   
   // Load the enhanced model
   const { scene } = useGLTF('/models/white_mesh.glb');

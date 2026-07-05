@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { analyticsService } from '@/services/analyticsService';
 import type { RiskOverview, ProductionImpact } from '@/types';
 import type { ProductionSchedule } from '@/mock/data/production-schedules'; // or define it here if needed
