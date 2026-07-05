@@ -29,3 +29,10 @@ export function GuestRoute() {
   if (isAuthenticated) return <Navigate to={dashboardRoute} replace />;
   return <Outlet />;
 }
+
+// ─── RootRedirect: redirect from / to appropriate place ──────────────────────
+export function RootRedirect() {
+  const { isAuthenticated, dashboardRoute } = useAuth();
+  if (isAuthenticated) return <Navigate to={dashboardRoute} replace />;
+  return <Navigate to="/login" replace />;
+}

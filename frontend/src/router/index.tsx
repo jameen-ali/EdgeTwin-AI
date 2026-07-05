@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { ProtectedRoute, RoleRoute, GuestRoute } from './guards';
+import { ProtectedRoute, RoleRoute, GuestRoute, RootRedirect } from './guards';
 import { LoadingScreen } from '@/components/layout/LoadingScreen';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
@@ -103,7 +103,7 @@ const router = createBrowserRouter([
   },
 
   // Redirects & 404
-  { path: '/', element: <ProtectedRoute />, children: [{ index: true, element: <div /> }] },
+  { path: '/', element: <RootRedirect /> },
   { path: '*', element: <NotFound /> },
 ]);
 
