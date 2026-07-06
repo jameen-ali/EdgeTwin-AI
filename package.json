@@ -1,0 +1,11 @@
+{
+  "name": "edgetwin-ai-root",
+  "version": "1.0.0",
+  "description": "EdgeTwin AI Root Scripts",
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:frontend": "cd frontend && npm install"
+  },
+  "private": true
+}
