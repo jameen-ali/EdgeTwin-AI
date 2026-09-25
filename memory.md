@@ -6,8 +6,9 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 
 ---
 ## 1. Current status
-Discovery and research complete. Six core documents drafted (v0.1). **No implementation started.** Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
-
+- Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-001]** Repository scaffolded: `pyproject.toml`, `requirements.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.env.example`, `gemini.md`, `.agents/rules/engineering.md`, and skeleton directories. Notebooks safely moved to `notebooks/`. Verification passed.
+- Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
 ## 2. Uploaded project inventory [AUDIT]
 ```
 EdgeTwin-AI/

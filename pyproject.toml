@@ -1,0 +1,37 @@
+[project]
+name = "edgetwin"
+version = "0.1.0"
+description = "EdgeTwin AI - Predictive Maintenance"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.16.8",
+    "black==26.5.1",
+    "pre-commit==4.6.2",
+    "mypy==2.3.1",
+]
+
+[tool.setuptools]
+packages = []
+
+[tool.ruff]
+line-length = 100
+exclude = [
+    "notebooks/*",
+    "data/*"
+]
+
+[tool.black]
+line-length = 100
+extend-exclude = '''
+/(
+  | notebooks
+  | data
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

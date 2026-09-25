@@ -15,7 +15,7 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Implementation:** ignore `.ipynb_checkpoints/`, `.env`, `__pycache__`, `mlruns/`, large artefacts; pin Python version; ruff + black config; README with project one-liner and status table (all features "not started").
 - **Acceptance:** fresh clone → `pip install -e .[dev]` works; `ruff` and `pytest` (0 tests) run; no notebook or data file altered except moved.
 - **Tests:** CI-less smoke: `pytest --collect-only` exits 0.
-- **Status:** TODO
+- **Status:** DONE
 
 ### T-002 Dataset provenance and data card
 - **Goal:** Establish where `predictive_maintenance_dataset.csv` came from and what it legitimately supports.
