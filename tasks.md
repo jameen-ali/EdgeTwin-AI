@@ -76,21 +76,21 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 
 ### T-013 Calibration, threshold, and risk bands
 - **Goal:** Probability that means something plus a defensible threshold.
-- **Files:** `ml/calibrate.py`, `docs/ml/thresholds.md`.
+- **Files:** `ml/models/calibrate.py`, `ml/models/thresholds.py`, `docs/ml/calibration.md`, `docs/ml/thresholds.md`.
 - **Depends:** T-012.
-- **Implementation:** isotonic/Platt on validation; cost-based threshold (missed failure costs more than a false alarm; cost ratio is an editable parameter); bands LOW/MEDIUM/HIGH/CRITICAL as **system** bands.
-- **Acceptance:** reliability curve + Brier score reported; bands documented as recommendations.
-- **Tests:** monotonicity; calibration error bound on validation.
-- **Status:** TODO
+- **Implementation:** Evaluated uncalibrated vs. sigmoid (Platt) vs. isotonic calibration on `val_df` using `FrozenEstimator` to keep S04 champion frozen. Sigmoid selected: validation Brier score reduced from 0.02810 to 0.02619 (6.8% reduction), ECE reduced from 0.02867 to 0.00391 (86.4% reduction), zero degradation in PR-AUC (0.8969) or ROC-AUC (0.9822). Threshold sweep (0.10..0.90, step 0.02) evaluated 41 points on validation data across cost ratios r=1, 3, 5, 10. Selected operational threshold $t^* = 0.16$ based on $r=5$ cost-sensitive optimization (Cost=137, Recall=0.8421, Precision=0.7778 on val). Defined 4 system risk bands: LOW (<0.15), MEDIUM (0.15..0.16), HIGH (0.16..0.80), CRITICAL (>=0.80).
+- **Acceptance:** Reliability curve and Brier score reported; operational threshold cost-justified; bands documented as project-specific operational recommendations.
+- **Tests:** 18 unit and integration tests in `tests/ml/test_calibration.py`, 18 in `tests/ml/test_thresholds.py`.
+- **Status:** DONE
 
 ### T-014 Anomaly detector and health score definition
 - **Goal:** Separate unsupervised anomaly detection and a documented health score.
-- **Files:** `ml/anomaly.py`, `docs/ml/health_model.md`.
+- **Files:** `ml/models/anomaly.py`, `ml/models/health.py`, `docs/ml/health_model.md`.
 - **Depends:** T-012.
-- **Implementation:** Isolation Forest fit on healthy rows only; evaluated separately (preliminary AUC ≈ 0.90, weakest on Tool Wear ≈ 0.78); health score = documented fusion of L1–L3 (weights in config).
-- **Acceptance:** anomaly metrics reported apart from classifier metrics; fusion table unit-tested.
-- **Tests:** healthy-only fit test; fusion boundary tests.
-- **Status:** TODO
+- **Implementation:** Isolation Forest (n_estimators=150, contamination=0.02, random_state=42) trained strictly on 6,081 healthy training observations (`train_df[Machine_Failure == 0]`) with 14 `+physics` features. Normalization to [0, 1] using healthy training reference percentiles (s_nominal=95th, s_extreme=1st) with robust guards against zero denominators and NaNs. Validation: ROC-AUC = 0.8699, PR-AUC = 0.4639. Empirical validation threshold (alpha=0.02) = 0.9075, provisional default = 0.50. Layer 4 Health Score composite formula: $100 - (60 \cdot p_{\text{cal}} + 25 \cdot a_{\text{anomaly}} + \Delta_{\text{sensor}})$ with strictly clamped sensor penalty $0 \le \Delta_{\text{sensor}} \le 15$. Deterministic state precedence hierarchy implemented: `OFFLINE` > `MAINTENANCE_REQUIRED` (operational override: Tool_Wear_Min >= 240 or tech confirmation) > `CRITICAL` > `WARNING` > `HEALTHY`.
+- **Acceptance:** Anomaly metrics reported separately from classifier metrics; fusion table unit-tested; state precedence strictly verified.
+- **Tests:** 17 unit and integration tests in `tests/ml/test_anomaly.py`, 18 in `tests/ml/test_health.py`.
+- **Status:** DONE
 
 ### T-015 Explainability
 - **Goal:** Top contributing features per prediction.

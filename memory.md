@@ -12,9 +12,63 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-010]** DVC versioning initialized. `dvc repro` works. `dvc status` clean after reproduction. Branch `feat/T-010-T-011-data-contract`. 90 tests pass.
 - **[T-011]** Shared feature contract and machine-grouped splits implemented. 11 feature columns, 5 forbidden, Machine_Failure as target. Zero Machine_ID overlap. Failure rate within 5pp of 10.97% in all splits.
 - **[T-012]** Model comparison experiment completed. Branch `feat/T-012-model-comparison`. 15 candidate (model × feature_set) combinations evaluated with 5-fold CV and MLflow tracking. Champion selected by validation PR-AUC: XGBoost with `+physics` (Val PR-AUC = 0.8969, Recall = 0.8195). Evaluated once on held-out test set: Test PR-AUC = 0.9234, Recall = 0.8963, F1 = 0.8403, Accuracy = 0.9693. Test isolation bug audited and fixed. 149 tests pass.
+- **[T-013]** Probability calibration and threshold analysis completed. Platt/Sigmoid calibration selected on validation data (6.8% Brier error reduction, 86.4% ECE reduction, 0 loss in PR-AUC/ROC-AUC). 41 candidate thresholds swept (0.10..0.90, step 0.02). Operational decision threshold $t^* = 0.16$ cost-justified ($r=5$, Cost=137). 4 risk bands defined (LOW <0.15, MEDIUM 0.15..0.16, HIGH 0.16..0.80, CRITICAL >=0.80).
+- **[T-014]** Unsupervised anomaly detection and Layer 4 Health Score completed. IsolationForest (contamination=0.02, 150 trees) trained on 6,081 healthy training rows with 14 features. Normalized scores [0, 1] with zero-denominator & NaN guards. Health score composite index $[0, 100]$ with strictly clamped sensor penalty $[0, 15]$. Deterministic state precedence hierarchy: OFFLINE > MAINTENANCE_REQUIRED (operational override) > CRITICAL > WARNING > HEALTHY. Single final test evaluation on held-out test set: Recall = 0.8963, Precision = 0.7610, F1 = 0.8231, Brier = 0.02055. 220 tests pass.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
 
+---
+
+## S05 — T-013 Calibration & T-014 Anomaly/Health Scoring (2026-09-25)
+
+### Task completion
+- **Status:** DONE (T-013 and T-014)
+- **Branch:** `feat/T-013-T-014-calibration-health`
+- **Base Commit:** `cfb9b57` (S04 final reconciliation)
+- **Files created:** `ml/models/calibrate.py`, `ml/models/thresholds.py`, `ml/models/anomaly.py`, `ml/models/health.py`, `tests/ml/test_calibration.py`, `tests/ml/test_thresholds.py`, `tests/ml/test_anomaly.py`, `tests/ml/test_health.py`, `scripts/run_s05.py`, `docs/ml/calibration.md`, `docs/ml/thresholds.md`, `docs/ml/health_model.md`, `docs/sessions/S05_report.md`
+- **Files modified:** `tasks.md`, `memory.md`
+
+### Calibration results [T-013 — MEASURED]
+- Base S04 champion (`xgboost + physics`, 14 features) remained frozen.
+- Calibration evaluated on `val_df` using `FrozenEstimator`:
+  - Uncalibrated: Brier = 0.02810, ECE = 0.02867, PR-AUC = 0.89693, ROC-AUC = 0.98220
+  - Sigmoid (Platt): Brier = 0.02619, ECE = 0.00391, PR-AUC = 0.89693, ROC-AUC = 0.98220 (Selected: 6.8% Brier error reduction, 86.4% ECE reduction, 0 PR-AUC ranking loss)
+  - Isotonic: Brier = 0.02237, ECE = 0.00000, PR-AUC = 0.89004, ROC-AUC = 0.98474 (degrades PR-AUC ranking due to step-wise binning)
+
+### Threshold analysis & risk bands [T-013 — MEASURED]
+- 41 thresholds evaluated on `val_df` ($t \in [0.10, 0.90]$, step 0.02).
+- F1-optimal: $t = 0.50$ (F1 = 0.8231, Recall = 0.8045, Precision = 0.8425)
+- Cost-optimal ($r=1$): $t = 0.50$ (Cost = 46)
+- Cost-optimal ($r=3$): $t = 0.16$ (Cost = 95)
+- Cost-optimal ($r=5$): $t = 0.16$ (Cost = 137, Recall = 0.8421, Precision = 0.7778)
+- Cost-optimal ($r=10$): $t = 0.16$ (Cost = 242)
+- Operational decision threshold frozen at $t^* = 0.16$.
+- Risk bands defined: LOW ($p < 0.15$), MEDIUM ($0.15 \le p < 0.16$), HIGH ($0.16 \le p < 0.80$), CRITICAL ($p \ge 0.80$).
+
+### Unsupervised anomaly detector [T-014 — MEASURED]
+- Model: `IsolationForest(n_estimators=150, contamination=0.02, random_state=42)`
+- Training data: 6,081 healthy training rows (`train_df[Machine_Failure == 0]`). Zero target or post-hoc leakage.
+- Features: 14 `+physics` features (median imputation + ordinal encoding on Machine_Type).
+- Normalization: $s_{\text{nominal}} = -0.41224$ (95th pct), $s_{\text{extreme}} = -0.55025$ (1st pct), $\Delta = 0.13801$.
+- Validation: ROC-AUC = 0.8699, PR-AUC = 0.4639.
+- Thresholds: Provisional default = 0.50 (Recall = 0.8045, FPR = 0.2006); Empirical ($\alpha=0.02$) = 0.9075 (Recall = 0.2632, FPR = 0.0206).
+
+### Layer 4 Health Score & precedence [T-014 — SPECIFICATION]
+- Composite formula: $\text{Health Score} = \text{clip}(100 - (60 \cdot p_{\text{cal}} + 25 \cdot a_{\text{anomaly}} + \Delta_{\text{sensor}}), 0, 100)$
+- Sensor penalty clamping: strictly $0 \le \Delta_{\text{sensor}} \le 15$.
+- Deterministic state precedence hierarchy: `OFFLINE` > `MAINTENANCE_REQUIRED` (Tool_Wear_Min >= 240 or tech confirmation) > `CRITICAL` > `WARNING` > `HEALTHY`.
+
+### Final held-out test evaluation [S05 — MEASURED]
+- Evaluated ONCE on held-out test partition (1,499 rows, 9 machines) with frozen calibrator and $t^* = 0.16$:
+  - Recall: 0.8963 (121/135 failures detected)
+  - Precision: 0.7610 (38 false positives)
+  - F1: 0.8231
+  - F2: 0.8655
+  - Accuracy: 0.9653
+  - ROC-AUC: 0.9755
+  - PR-AUC: 0.9234
+  - Brier score: 0.02055 (17.5% reduction over uncalibrated baseline 0.02492)
+  - Per-failure-type recall: Heat Dissipation = 95.35%, Overstrain = 93.48%, Power = 75.00%, Tool Wear = 76.47%, Random = 100.00%.
 
 ---
 
