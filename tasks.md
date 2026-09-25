@@ -93,22 +93,22 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Status:** DONE
 
 ### T-015 Explainability
-- **Goal:** Top contributing features per prediction.
-- **Files:** `ml/explain.py`, `docs/ml/explainability.md`.
-- **Depends:** T-012.
-- **Implementation:** SHAP TreeExplainer if compatible with the chosen model; **fallback**: XGBoost/LightGBM native contributions or permutation importance for global view. Output sorted factors with sign.
-- **Acceptance:** explanation for a sample in < 100 ms; factors sum consistency check; caption "association, not causation".
-- **Tests:** additivity test; latency test.
-- **Status:** TODO
+- **Goal:** Top contributing features per prediction in model log-odds margin space.
+- **Files:** `ml/models/explain.py`, `docs/ml/explainability.md`, `tests/ml/test_explain.py`.
+- **Depends:** T-012, T-013.
+- **Implementation:** Implemented `EdgeTwinExplainer` supporting both `Pipeline` and `CalibratedClassifierCV`. Uses `shap.TreeExplainer(classifier, feature_perturbation="tree_path_dependent")` operating in XGBoost margin/log-odds space. Clarified Platt scaling monotonic relation (positive SHAP monotonically increases failure probability, negative SHAP decreases probability). Feature names recovered dynamically via `preprocessor.get_feature_names_out()` to guarantee 1-to-1 alignment with transformed matrix. Verified strict numerical additivity ($|\sum \phi_i + \text{base\_value} - \text{margin}| \le 10^{-4}$, measured $\approx 2.03 \times 10^{-6}$) with loud `ValueError` on discrepancy. Built-in zero-dependency fallback via native XGBoost `Booster.predict(..., pred_contribs=True)` producing identical contributions. Computed global feature importance ranking on validation background (`artifacts/feature_importance_global.csv`). Enforced mandatory disclaimer: *"Statistical association with failure condition in model log-odds margin space; not causal."*
+- **Acceptance:** Measured p95 single-sample explanation latency is 20.12 ms (< 100 ms SLA passed with 79.9% margin); additivity error $\approx 2.03 \times 10^{-6} \le 10^{-4}$; all 6 forbidden leakage columns rejected.
+- **Tests:** 31 tests in `tests/ml/test_explain.py` covering initialization, leakage rejection, feature alignment, local payload structure, top-k sorting, direction semantics, additivity guards, native fallback equivalence, global ranking, and latency SLA.
+- **Status:** DONE
 
 ### T-016 Registry and model card
-- **Goal:** Versioned, loadable champion.
-- **Files:** `mlops/register.py`, `docs/ml/model_card.md`.
+- **Goal:** Versioned, loadable champion encapsulated in a production PyFunc wrapper with technical promotion gate.
+- **Files:** `mlops/register.py`, `docs/ml/model_card.md`, `tests/mlops/test_register.py`.
 - **Depends:** T-013–T-015.
-- **Implementation:** MLflow model + aliases `challenger`/`champion`; card auto-generated from run metadata.
-- **Acceptance:** backend can load `models:/edgetwin-risk@champion`.
-- **Tests:** load-and-predict round-trip test.
-- **Status:** TODO
+- **Implementation:** Created `EdgeTwinRiskModel` (`mlflow.pyfunc.PythonModel`) wrapping the frozen S05 calibrated champion pipeline. Encapsulates full inference contract: accepts raw telemetry (10 sensors + `Machine_Type`) and auto-derives physics features (`+physics`) via `apply_feature_set`; handles missing sensor values (median imputation) and unseen machine categories; enforces leakage guards; evaluates operational threshold $t^* = 0.16$; assigns operational risk bands (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`). Implemented automated 10-step technical promotion gate verifying artifact loading, schema, bounds, threshold obedience, risk-band rules, and metadata before alias promotion. Registered model `edgetwin-risk` in MLflow, assigning `challenger` alias then promoting to `champion` upon passing gate. Generated comprehensive `docs/ml/model_card.md` using historical frozen S04/S05 metrics (ZERO test set re-evaluation).
+- **Acceptance:** Successfully registered `edgetwin-risk` (Version 2) in `sqlite:///mlflow.db`; loadable via `models:/edgetwin-risk@champion`; verified round-trip inference on raw telemetry.
+- **Tests:** 16 tests in `tests/mlops/test_register.py` covering raw telemetry handling, physics auto-generation, NaN handling, unseen category handling, leakage rejection, output schema, threshold consistency, promotion gate success/rejection, and MLflow lifecycle.
+- **Status:** DONE
 
 ---
 ## PHASE 2 — Contract and simulation

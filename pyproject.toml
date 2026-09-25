@@ -8,6 +8,7 @@ dependencies = [
     "scikit-learn>=1.6,<2",
     "mlflow>=3.0,<4",
     "xgboost>=3.0,<4",
+    "shap>=0.48.0,<1",
 ]
 
 [project.optional-dependencies]

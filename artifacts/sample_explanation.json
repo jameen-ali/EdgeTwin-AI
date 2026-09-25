@@ -1,0 +1,145 @@
+{
+  "base_value": 0.3866332173347473,
+  "model_margin": 8.653711318969727,
+  "calibrated_probability": 0.8997981550054501,
+  "feature_contributions": [
+    {
+      "feature_name": "Tool_Wear_Min",
+      "feature_value": 260.0,
+      "shap_value": 4.929725170135498,
+      "abs_magnitude": 4.929725170135498,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Torque_Nm",
+      "feature_value": 76.45,
+      "shap_value": 3.8302478790283203,
+      "abs_magnitude": 3.8302478790283203,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Vibration_mm_s",
+      "feature_value": 1.948,
+      "shap_value": -0.5738816857337952,
+      "abs_magnitude": 0.5738816857337952,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Rotational_Speed_RPM",
+      "feature_value": 1499.0,
+      "shap_value": 0.36910349130630493,
+      "abs_magnitude": 0.36910349130630493,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Voltage_V",
+      "feature_value": 419.0,
+      "shap_value": -0.3602123260498047,
+      "abs_magnitude": 0.3602123260498047,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Mech_Power_W",
+      "feature_value": 12000.732093068085,
+      "shap_value": 0.292056143283844,
+      "abs_magnitude": 0.292056143283844,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Current_A",
+      "feature_value": 8.01,
+      "shap_value": -0.2036210000514984,
+      "abs_magnitude": 0.2036210000514984,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Process_Temperature_C",
+      "feature_value": 34.15,
+      "shap_value": -0.17727139592170715,
+      "abs_magnitude": 0.17727139592170715,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Operating_Hours",
+      "feature_value": 14423.8,
+      "shap_value": 0.13036757707595825,
+      "abs_magnitude": 0.13036757707595825,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Machine_Type",
+      "feature_value": "Compressor",
+      "shap_value": 0.07951991260051727,
+      "abs_magnitude": 0.07951991260051727,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Air_Temperature_C",
+      "feature_value": 24.51,
+      "shap_value": -0.07881845533847809,
+      "abs_magnitude": 0.07881845533847809,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Pressure_bar",
+      "feature_value": 6.57,
+      "shap_value": -0.06959237158298492,
+      "abs_magnitude": 0.06959237158298492,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Apparent_Power_VA",
+      "feature_value": 3356.19,
+      "shap_value": 0.05844836309552193,
+      "abs_magnitude": 0.05844836309552193,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Delta_T_C",
+      "feature_value": 9.639999999999997,
+      "shap_value": 0.04099394381046295,
+      "abs_magnitude": 0.04099394381046295,
+      "direction": "increases risk"
+    }
+  ],
+  "top_factors": [
+    {
+      "feature_name": "Tool_Wear_Min",
+      "feature_value": 260.0,
+      "shap_value": 4.929725170135498,
+      "abs_magnitude": 4.929725170135498,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Torque_Nm",
+      "feature_value": 76.45,
+      "shap_value": 3.8302478790283203,
+      "abs_magnitude": 3.8302478790283203,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Vibration_mm_s",
+      "feature_value": 1.948,
+      "shap_value": -0.5738816857337952,
+      "abs_magnitude": 0.5738816857337952,
+      "direction": "lowers risk"
+    },
+    {
+      "feature_name": "Rotational_Speed_RPM",
+      "feature_value": 1499.0,
+      "shap_value": 0.36910349130630493,
+      "abs_magnitude": 0.36910349130630493,
+      "direction": "increases risk"
+    },
+    {
+      "feature_name": "Voltage_V",
+      "feature_value": 419.0,
+      "shap_value": -0.3602123260498047,
+      "abs_magnitude": 0.3602123260498047,
+      "direction": "lowers risk"
+    }
+  ],
+  "additivity_verified": 1,
+  "additivity_discrepancy": 1.2855976819992065e-05,
+  "disclaimer": "Statistical association with failure condition in model log-odds margin space; not causal."
+}

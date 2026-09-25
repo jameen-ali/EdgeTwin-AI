@@ -1,0 +1,16 @@
+[
+  "Air_Temperature_C",
+  "Process_Temperature_C",
+  "Rotational_Speed_RPM",
+  "Torque_Nm",
+  "Vibration_mm_s",
+  "Pressure_bar",
+  "Current_A",
+  "Voltage_V",
+  "Tool_Wear_Min",
+  "Operating_Hours",
+  "Machine_Type",
+  "Delta_T_C",
+  "Apparent_Power_VA",
+  "Mech_Power_W"
+]

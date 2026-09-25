@@ -14,8 +14,64 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-012]** Model comparison experiment completed. Branch `feat/T-012-model-comparison`. 15 candidate (model × feature_set) combinations evaluated with 5-fold CV and MLflow tracking. Champion selected by validation PR-AUC: XGBoost with `+physics` (Val PR-AUC = 0.8969, Recall = 0.8195). Evaluated once on held-out test set: Test PR-AUC = 0.9234, Recall = 0.8963, F1 = 0.8403, Accuracy = 0.9693. Test isolation bug audited and fixed. 149 tests pass.
 - **[T-013]** Probability calibration and threshold analysis completed. Platt/Sigmoid calibration selected on validation data (6.8% Brier error reduction, 86.4% ECE reduction, 0 loss in PR-AUC/ROC-AUC). 41 candidate thresholds swept (0.10..0.90, step 0.02). Operational decision threshold $t^* = 0.16$ cost-justified ($r=5$, Cost=137). 4 risk bands defined (LOW <0.15, MEDIUM 0.15..0.16, HIGH 0.16..0.80, CRITICAL >=0.80).
 - **[T-014]** Unsupervised anomaly detection and Layer 4 Health Score completed. IsolationForest (contamination=0.02, 150 trees) trained on 6,081 healthy training rows with 14 features. Normalized scores [0, 1] with zero-denominator & NaN guards. Health score composite index $[0, 100]$ with strictly clamped sensor penalty $[0, 15]$. Deterministic state precedence hierarchy: OFFLINE > MAINTENANCE_REQUIRED (operational override) > CRITICAL > WARNING > HEALTHY. Single final test evaluation on held-out test set: Recall = 0.8963, Precision = 0.7610, F1 = 0.8231, Brier = 0.02055. 220 tests pass.
+- **[T-015]** Model explainability layer implemented: `EdgeTwinExplainer` using `shap.TreeExplainer` operating in model log-odds margin space. Dynamic feature alignment via `preprocessor.get_feature_names_out()`. Strict additivity guard enforced ($|\sum \phi_i + \text{base\_value} - \text{margin}| \le 10^{-4}$, measured discrepancy $\approx 2.03 \times 10^{-6}$). Zero-dependency fallback via native XGBoost `Booster.predict(..., pred_contribs=True)` producing identical attributions. Latency SLA measured on validation telemetry: mean = 19.24 ms, p95 = 20.12 ms (< 100 ms SLA passed). Global importance table computed on validation background and saved to `artifacts/feature_importance_global.csv`. Mandatory honesty disclaimer included on all outputs. 31 tests pass.
+- **[T-016]** Model packaging, registration, and governance implemented: `EdgeTwinRiskModel` (`mlflow.pyfunc.PythonModel`) wrapping calibrated S05 champion. Ingestion contract supports raw telemetry (10 sensors + Machine_Type) with auto-derivation of physics features (`+physics`), missing sensor values, and unseen categories. Automated 10-step technical promotion gate enforces schema, bounds, threshold 0.16, risk-band rules, and metadata before champion promotion. Model registered in MLflow under `edgetwin-risk` (Version 2) with aliases `challenger` and `champion`. Verified round-trip load and inference via `models:/edgetwin-risk@champion`. Model card generated in `docs/ml/model_card.md` using frozen S04/S05 metrics (ZERO test set re-evaluation). 16 tests pass.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S06 — T-015 Explainability & T-016 Model Registry (2026-09-25)
+
+### Task completion
+- **Status:** DONE (T-015 and T-016)
+- **Branch:** `feat/T-015-T-016-explainability-registry`
+- **Base Commit:** `1d08fb1` (S05 final baseline)
+- **Files created:** `ml/models/explain.py`, `mlops/register.py`, `tests/ml/test_explain.py`, `tests/mlops/test_register.py`, `docs/ml/explainability.md`, `docs/ml/model_card.md`, `artifacts/feature_importance_global.csv`, `artifacts/sample_explanation.json`, `artifacts/champion_features.json`
+- **Files modified:** `pyproject.toml` (added `shap>=0.48.0,<1`), `tasks.md`, `memory.md`
+
+### T-015 Explainability [MEASURED]
+- Model: Frozen S05 champion (`xgboost + physics`, 14 features, Platt sigmoid calibration).
+- Explainer class: `EdgeTwinExplainer`.
+- Explanation space: Model margin (log-odds). Positive SHAP monotonically increases calibrated probability; negative SHAP monotonically decreases probability. Values represent statistical associations, NOT physical causation.
+- Dynamic feature alignment: Transformed feature names recovered dynamically via `preprocessor.get_feature_names_out()` (`['Air_Temperature_C', 'Process_Temperature_C', 'Rotational_Speed_RPM', 'Torque_Nm', 'Vibration_mm_s', 'Pressure_bar', 'Current_A', 'Voltage_V', 'Tool_Wear_Min', 'Operating_Hours', 'Delta_T_C', 'Apparent_Power_VA', 'Mech_Power_W', 'Machine_Type']`), resolving `ColumnTransformer` categorical reordering.
+- Additivity verification: Strict numerical guard ($|\text{base\_value} + \sum \phi_i - \text{margin}| \le 10^{-4}$). Measured error on validation telemetry: $\approx 2.03 \times 10^{-6}$.
+- Native XGBoost fallback: `Booster.predict(..., pred_contribs=True)` produces shape $(N, 15)$ (columns 0–13 SHAP, column 14 bias), matching TreeSHAP within $10^{-4}$.
+- Latency benchmark (50 single-row runs after warm-up):
+  - Mean: 19.24 ms
+  - Median: 19.24 ms
+  - p95: 20.12 ms (< 100 ms SLA passed)
+  - Max: 20.38 ms
+- Global feature importance (validation background, 1,490 rows):
+  1. `Tool_Wear_Min` (mean |SHAP| = 1.1532)
+  2. `Vibration_mm_s` (mean |SHAP| = 0.9182)
+  3. `Process_Temperature_C` (mean |SHAP| = 0.8427)
+  4. `Voltage_V` (mean |SHAP| = 0.7004)
+  5. `Current_A` (mean |SHAP| = 0.5199)
+  6. `Torque_Nm` (mean |SHAP| = 0.4790)
+  7. `Air_Temperature_C` (mean |SHAP| = 0.3079)
+  8. `Pressure_bar` (mean |SHAP| = 0.2112)
+  9. `Rotational_Speed_RPM` (mean |SHAP| = 0.2021)
+  10. `Apparent_Power_VA` (mean |SHAP| = 0.1860)
+  11. `Delta_T_C` (mean |SHAP| = 0.1818)
+  12. `Mech_Power_W` (mean |SHAP| = 0.1472)
+  13. `Operating_Hours` (mean |SHAP| = 0.0936)
+  14. `Machine_Type` (mean |SHAP| = 0.0633)
+
+### T-016 Model Registry & Model Card [MEASURED & VERIFIED]
+- Model Wrapper: `EdgeTwinRiskModel(mlflow.pyfunc.PythonModel)` encapsulating complete S05 calibrated inference contract.
+- Input Contract: Supports raw telemetry (10 sensors + Machine_Type), auto-deriving physics features via `apply_feature_set(df, "+physics")`. Robust to NaNs (median imputation) and unseen categories (`unknown_value=-1`). Enforces strict leakage guard.
+- Output Contract: `pd.DataFrame` with `calibrated_probability` $\in [0, 1]$, `failure_prediction` $\in \{0, 1\}$ ($=1$ iff $p \ge 0.16$), and `risk_band` $\in \{\text{LOW, MEDIUM, HIGH, CRITICAL}\}$. Zero mixing of L3 anomaly scores or L4 health scores.
+- Promotion Gate: 10-step technical verification (loading, raw telemetry handling, physics derivation, NaNs, unseen categories, schema, bounds, threshold obedience, risk band rules, metadata validation).
+- MLflow Registry:
+  - Experiment: `T-015-T-016-explainability-registry`
+  - Run ID: `517dc9f1f9144b62b61f7dd3f076f85e`
+  - Registered Model: `edgetwin-risk`
+  - Version: `2`
+  - Aliases: `challenger` $\to$ `champion` (post-gate)
+  - Target URI: `models:/edgetwin-risk@champion`
+- Verification: `models:/edgetwin-risk@champion` loaded and predicted successfully on raw telemetry.
+- Model Card: Generated at `docs/ml/model_card.md` using frozen historical S04/S05 test results. Zero test set re-evaluation conducted.
 
 ---
 
@@ -402,7 +458,14 @@ Provisional palette/type in design.md. Reference website pending. Chart-series c
 Dataset synthetic, provenance unverified, i.i.d. snapshots (no forecasting). Wokwi has no physics; vibration is a proxy, not calibrated velocity. Wokwi free plan = public projects and monitored public gateway. Preliminary metrics are untuned OOF estimates. Numeric ISO vibration limits not yet verified.
 
 ## 12. Dependencies (planned; each needs justification in its task)
-Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, pydantic, paho-mqtt (or aiomqtt), scikit-learn, (xgboost optional), shap (verify), MLflow, DVC, pandas, scipy; React, TypeScript, Vite, Tailwind, TanStack Query, Recharts; PostgreSQL 16, Mosquitto, Docker Compose; PubSubClient + ArduinoJson (firmware).
+Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, pydantic, paho-mqtt (or aiomqtt), scikit-learn, xgboost, shap, MLflow, DVC, pandas, scipy; React, TypeScript, Vite, Tailwind, TanStack Query, Recharts; PostgreSQL 16, Mosquitto, Docker Compose; PubSubClient + ArduinoJson (firmware).
+
+### Justified & Declared Dependencies
+- `xgboost>=3.0.0`: [T-012] S04 Champion classifier. Required for gradient boosted tree training and native margin attribution (`Booster.predict(..., pred_contribs=True)`).
+- `mlflow>=3.14.0`: [T-012, T-016] Model experiment tracking and model registry. Encapsulates `EdgeTwinRiskModel` PyFunc artifact, alias governance (`challenger`, `champion`), and technical promotion gates.
+- `shap>=0.48.0,<1`: [T-015] TreeSHAP explainer engine (`shap.TreeExplainer`).
+  - *What it does:* Computes game-theoretic local feature attributions (TreeSHAP) in model log-odds margin space with guaranteed numerical additivity ($\sum \phi_i + \text{base} = \text{margin}$) and global feature importance ranking.
+  - *Why stdlib/existing tools are insufficient:* Python standard library provides no tree attribution or SHAP implementation. While XGBoost includes native `pred_contribs=True` (which we implemented as an offline fallback), `shap` provides canonical interop, tree path-dependent background perturbation, interaction index utilities, and standardized explainability primitives required by T-015. Declared in `pyproject.toml` as `shap>=0.48.0,<1`.
 
 ## 13. API / database changes
 None yet (v1 draft in architecture.md §8, §12, §13).
