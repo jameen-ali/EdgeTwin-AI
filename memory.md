@@ -11,9 +11,46 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-003]** Reproducible data preparation pipeline implemented and verified. Branch `feat/T-003-data-preparation`. All 38 tests pass. ruff/black clean.
 - **[T-010]** DVC versioning initialized. `dvc repro` works. `dvc status` clean after reproduction. Branch `feat/T-010-T-011-data-contract`. 90 tests pass.
 - **[T-011]** Shared feature contract and machine-grouped splits implemented. 11 feature columns, 5 forbidden, Machine_Failure as target. Zero Machine_ID overlap. Failure rate within 5pp of 10.97% in all splits.
+- **[T-012]** Model comparison experiment completed. Branch `feat/T-012-model-comparison`. 15 candidate (model × feature_set) combinations evaluated with 5-fold CV and MLflow tracking. Champion selected by validation PR-AUC: XGBoost with `+physics` (Val PR-AUC = 0.8969, Recall = 0.8195). Evaluated once on held-out test set: Test PR-AUC = 0.9234, Recall = 0.8963, F1 = 0.8403, Accuracy = 0.9693. Test isolation bug audited and fixed. 149 tests pass.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
 
+
+---
+
+## S04 — T-012 Model Comparison (2026-09-25)
+
+### Task completion
+- **Status:** DONE (T-012)
+- **Branch:** `feat/T-012-model-comparison`
+- **Base Commit:** `17c2536` (S03 — feat(data): add versioned data contract and splits)
+- **Files created:** `ml/data/engineering.py`, `ml/models/train.py`, `ml/models/evaluate.py`, `ml/models/compare.py`, `tests/ml/test_models.py`, `docs/ml/model_comparison.md`, `docs/sessions/S04_report.md`, `scripts/reconcile_comparison.py`
+- **Files modified:** `pyproject.toml` (mlflow + xgboost added), `tasks.md`, `memory.md`
+
+### Champion selection [T-012 — DECISION]
+- **Selection Rule:** Validation PR-AUC (primary), Validation Recall (tie-break).
+- **Champion:** `xgboost` with `+physics` (14 features).
+  - Validation PR-AUC: 0.8969
+  - Validation Recall: 0.8195
+  - Validation F1: 0.8104
+  - Validation ROC-AUC: 0.9822
+  - Validation Accuracy: 0.9657
+  - MLflow Run ID: `bd7c1288181a461fbe43e994078e16bf`
+
+### Single held-out test evaluation [T-012 — MEASURED]
+- Evaluated strictly once after champion selection on held-out test partition (9 machines, 1,499 rows).
+- MLflow Test Run ID: `0709463d1ee14acb9d325cb58a57e69f`
+- Test PR-AUC: 0.9234
+- Test Recall: 0.8963
+- Test F1: 0.8403
+- Test Accuracy: 0.9693
+- Test ROC-AUC: 0.9755
+- Per-failure-type recall: Heat Dissipation = 95.35%, Overstrain = 93.48%, Power = 75.00%, Tool Wear = 76.47%, Random = 100.00%.
+
+### Audit & test report isolation fix [T-012 — FIX]
+- **Issue:** Initial docs showed Decision Tree + base10 instead of XGBoost + physics.
+- **Root Cause:** In `ml/models/compare.py`, `run_comparison()` lacked an `output_path` parameter and had hardcoded `_DOCS_ML_DIR / "model_comparison.md"`. When `pytest` ran the smoke test `test_comparison_champion_has_zero_machine_id_overlap(models=("decision_tree",))`, it silently overwrote `docs/ml/model_comparison.md` with the single smoke-test model and ephemeral test run ID.
+- **Fix:** Added `output_path: Path | None = None` to `run_comparison()`. Updated smoke tests in `tests/ml/test_models.py` to route reports to `tmp_path / "model_comparison.md"`. Reconciled `docs/ml/model_comparison.md` from `mlflow.db`. Confirmed `pytest` runs no longer touch `docs/ml/model_comparison.md`.
 
 ---
 

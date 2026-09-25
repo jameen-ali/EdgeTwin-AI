@@ -16,6 +16,8 @@ env/
 !.env.example
 
 mlruns/
+mlflow.db
+*.db
 checkpoints/
 *.ckpt
 *.pt

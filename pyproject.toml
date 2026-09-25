@@ -6,6 +6,8 @@ requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.2,<3",
     "scikit-learn>=1.6,<2",
+    "mlflow>=3.0,<4",
+    "xgboost>=3.0,<4",
 ]
 
 [project.optional-dependencies]

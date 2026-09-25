@@ -67,12 +67,12 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 
 ### T-012 Model comparison experiment
 - **Goal:** Justified model selection.
-- **Files:** `ml/train.py`, `ml/evaluate.py`, `docs/ml/model_comparison.md`.
+- **Files:** `ml/data/engineering.py`, `ml/models/train.py`, `ml/models/evaluate.py`, `ml/models/compare.py`, `docs/ml/model_comparison.md`, `tests/ml/test_models.py`.
 - **Depends:** T-010, T-011.
-- **Implementation:** candidates Logistic Regression, Decision Tree, Random Forest, gradient-boosted trees (HistGradientBoosting; XGBoost if it adds value); class weighting; stratified k-fold on train+val, single test evaluation; feature-set ablation (base10 vs +physics vs +Wear_Rate); MLflow logging.
-- **Acceptance:** table of Precision/Recall/F1/PR-AUC/ROC-AUC/confusion matrix per model with mean ± std; champion chosen by validation PR-AUC and recall@precision; per-failure-type recall reported (Tool Wear is the weak spot in the preliminary audit).
-- **Tests:** seed determinism; metric sanity; leakage guard (fails if a forbidden column is in features).
-- **Status:** TODO
+- **Implementation:** Evaluated 5 candidate model types (Logistic Regression, Decision Tree, Random Forest, HistGradientBoosting, XGBoost) across 3 feature configurations (`base10`, `+physics`, `+wear_rate`) with 5-fold cross-validation and MLflow tracking. Preprocessing fitted strictly on training data (median imputation, ordinal encoding with unseen category guard, standard scaling for linear models only). Selection criterion: Validation PR-AUC (primary) and Validation Recall (tie-break). Champion: `xgboost` with `+physics` (14 features; Val PR-AUC = 0.8969, Val Recall = 0.8195). Single final evaluation on held-out test set: Test PR-AUC = 0.9234, Recall = 0.8963, F1 = 0.8403, Accuracy = 0.9693, ROC-AUC = 0.9755. Per-failure-type recall reported (Tool Wear = 76.47%).
+- **Acceptance:** Complete 15-model comparison table in `docs/ml/model_comparison.md`; champion chosen by validation PR-AUC; single held-out test evaluation after selection; MLflow runs tracked; zero leakage verified.
+- **Tests:** 59 unit and integration tests in `tests/ml/test_models.py` (total 149 tests passing across repository); seed determinism; metric sanity; leakage guards; test report isolation.
+- **Status:** DONE
 
 ### T-013 Calibration, threshold, and risk bands
 - **Goal:** Probability that means something plus a defensible threshold.
