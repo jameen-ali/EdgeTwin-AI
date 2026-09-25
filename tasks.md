@@ -114,22 +114,20 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 ## PHASE 2 — Contract and simulation
 
 ### T-020 Telemetry contract v1
-- **Goal:** Single source of truth for messages.
-- **Files:** `docs/api/telemetry.v1.schema.json`, `simulation/contract.py`, `tests/contract/`.
+- **Goal:** Single source of truth for wire messages and bridge to ML inference.
+- **Files:** `docs/api/telemetry.v1.schema.json`, `simulation/contract.py`, `tests/contract/test_telemetry_contract.py`, `tests/contract/test_telemetry_ml_compat.py`.
 - **Depends:** T-001.
-- **Implementation:** JSON Schema (see architecture.md §8), topic tree, nulls for missing sensors, `provenance` enum, `seq`, ISO-8601 UTC `ts`.
-- **Acceptance:** valid/invalid fixtures pass/fail as expected; schema versioned.
-- **Tests:** schema tests, fuzz test with malformed payloads.
-- **Status:** TODO
+- **Implementation:** Draft 2020-12 JSON Schema (`edgetwin.telemetry.v1`) with nulls supported for missing sensors, `provenance` enum, `seq`, ISO-8601 UTC `ts`, sensor range validation against authoritative `SENSOR_RANGES`, quality flags (`OK`, `OUT_OF_RANGE`, `STALE`, `MISSING`, `LIMIT_WARN`, `LIMIT_ALARM`), and edge diagnostic fields (`delta_t_c`, `power_va`, `trip`, `buffered`). Implemented `TelemetryValidator` with safe/non-crashing JSON parsing, schema enforcement, MQTT topic-payload machine ID consistency, missing-value quality marking, strict leakage guard rejecting forbidden fields (`Failure_Type`, `Machine_Failure`, `Sensor_Batch_Code`, `Checksum_Flag`), sequence tracking, and diagnostic comparison against backend calculations with approved tolerances ($\Delta T = 0.2\,^\circ\text{C}$, Apparent Power = $5.0\text{ VA}$). Implemented `telemetry_to_feature_df` adapter resolving `Machine_Type` via `MACHINE_ID_PREFIX_MAP` (fallback "Unknown") and producing exactly 11 columns (10 raw sensors + `Machine_Type`) so champion model auto-derives physics features without caller computation.
+- **Acceptance:** 55 tests passing across `test_telemetry_contract.py` (39 tests) and `test_telemetry_ml_compat.py` (16 tests); verified round-trip inference with frozen `models:/edgetwin-risk@champion`, leakage absence, and diagnostic isolation.
+- **Status:** DONE
 
 ### T-021 Scenario spec and process model
-- **Goal:** Reproducible fault scenarios derived from data, not invented.
-- **Files:** `simulation/scenarios/*.yaml`, `simulation/process_model.py`, `docs/dataset/fault_signatures.md`.
+- **Goal:** Reproducible fault scenarios derived from empirical data and coupled physics process model.
+- **Files:** `simulation/scenarios/*.yaml` (8 scenarios), `simulation/process_model.py`, `docs/dataset/fault_signatures.md`, `tests/simulation/test_scenarios.py`.
 - **Depends:** T-003, T-020.
-- **Implementation:** healthy envelope (means/std/p1/p99 from non-failure rows) + signatures per failure mode (e.g., Heat Dissipation: ΔT ↑, RPM ↓; Overstrain: torque·wear ↑; Power: V·I out of band; Tool Wear: wear ≈ 200–250 with vibration ↑; "Random" mode shows vibration ≈ 7 and pressure ≈ 9 in this dataset) + gradual-ramp and step variants + sensor-dropout scenario.
-- **Acceptance:** healthy scenario yields low risk (mean p_fail below a set bound) and each fault scenario is separable by the champion model in offline replay.
-- **Tests:** seeded determinism; envelope tests.
-- **Status:** TODO
+- **Implementation:** Coupled physical process equations in `SimulatedMachine` maintaining real-world thermodynamic and electro-mechanical relationships between temperature, current, voltage, power, torque, RPM, vibration, pressure, tool wear, and operating hours; deterministic seed (`seed=42`) and replay timestamps; five-state finite state machine (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Documented empirical parameters versus simulation assumptions in `docs/dataset/fault_signatures.md` across 8 scenarios (SCN-01 to SCN-08). Evaluated scenarios through frozen `models:/edgetwin-risk@champion`, IsolationForest anomaly detector, and Layer 4 Health Score engine.
+- **Acceptance:** SCN-01 healthy nominal mean $p_{\text{fail}} = 0.0117$, max $p_{\text{fail}} = 0.0292 \le 0.05$ (PASSED); SCN-02 heat dissipation degraded $p_{\text{fail}} = 0.8940 \ge 0.16$ (PASSED, top SHAP factors: `Process_Temperature_C`, `Current_A`, `Tool_Wear_Min`); SCN-03 overstrain degraded $p_{\text{fail}} = 0.8790 \ge 0.16$ (PASSED); SCN-04 power failure active fault $p_{\text{fail}} = 0.8992 \ge 0.16$ before safety trip and post-trip `TRIP_OVERLOAD` (PASSED); SCN-05 tool wear $\ge 240$ min triggers `MAINTENANCE_REQUIRED` health state and late $p_{\text{fail}} = 0.8886$ (PASSED); SCN-06 random vibration fault $p_{\text{fail}} = 0.8973 \ge 0.16$ (PASSED, top SHAP factor: `Vibration_mm_s`); SCN-07 sensor dropout handled without crash (PASSED); SCN-08 machine offline halts telemetry after step 10 (PASSED). 13 tests passing in `tests/simulation/test_scenarios.py`.
+- **Status:** DONE
 
 ### T-022 Virtual edge (Python)
 - **Goal:** Firmware-equivalent publisher for CI and for development without Wokwi.

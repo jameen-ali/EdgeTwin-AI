@@ -359,6 +359,7 @@ class TestRegistryLifecycle:
         feature_cols_14: list[str],
         tmp_path: Path,
     ) -> None:
+        orig_tracking_uri = mlflow.get_tracking_uri()
         db_path = tmp_path / "test_mlflow.db"
         tracking_uri = f"sqlite:///{db_path}"
         mlflow.set_tracking_uri(tracking_uri)
@@ -380,58 +381,65 @@ class TestRegistryLifecycle:
             "git_commit": "testcommit",
         }
 
-        with mlflow.start_run(run_name="test-run"):
-            for k, v in metadata.items():
-                mlflow.log_param(k, v)
+        try:
+            with mlflow.start_run(run_name="test-run"):
+                for k, v in metadata.items():
+                    mlflow.log_param(k, v)
 
-            mlflow.pyfunc.log_model(
-                artifact_path="model",
-                python_model=calibrated_risk_model,
-                artifacts={
-                    "calibrated_model": str(joblib_path),
-                    "feature_cols": str(feat_path),
-                },
-                code_paths=["ml", "mlops"],
-                registered_model_name=MODEL_NAME,
+                mlflow.pyfunc.log_model(
+                    artifact_path="model",
+                    python_model=calibrated_risk_model,
+                    artifacts={
+                        "calibrated_model": str(joblib_path),
+                        "feature_cols": str(feat_path),
+                    },
+                    code_paths=["ml", "mlops"],
+                    registered_model_name=MODEL_NAME,
+                )
+
+            client = MlflowClient()
+            versions = client.search_model_versions(f"name='{MODEL_NAME}'")
+            assert len(versions) >= 1
+            v = str(max(int(x.version) for x in versions))
+
+            # 1. Assign challenger
+            client.set_registered_model_alias(MODEL_NAME, "challenger", v)
+            challenger_model = client.get_model_version_by_alias(MODEL_NAME, "challenger")
+            assert str(challenger_model.version) == str(v)
+
+            # 2. Run promotion gate on challenger
+            gate_res = verify_promotion_gate(f"models:/{MODEL_NAME}@challenger", metadata=metadata)
+            assert gate_res["status"] == "PASSED"
+
+            # 3. Assign champion
+            client.set_registered_model_alias(MODEL_NAME, "champion", v)
+            champion_model = client.get_model_version_by_alias(MODEL_NAME, "champion")
+            assert str(champion_model.version) == str(v)
+
+            # 4. Load-and-predict round trip via models:/edgetwin-risk@champion
+            loaded = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}@champion")
+            sample_raw = pd.DataFrame(
+                {
+                    "Air_Temperature_C": [25.0],
+                    "Process_Temperature_C": [35.0],
+                    "Rotational_Speed_RPM": [1500.0],
+                    "Torque_Nm": [40.0],
+                    "Vibration_mm_s": [1.2],
+                    "Pressure_bar": [4.0],
+                    "Current_A": [12.0],
+                    "Voltage_V": [220.0],
+                    "Tool_Wear_Min": [50.0],
+                    "Operating_Hours": [100.0],
+                    "Machine_Type": ["L"],
+                }
             )
-
-        client = MlflowClient()
-        versions = client.search_model_versions(f"name='{MODEL_NAME}'")
-        assert len(versions) >= 1
-        v = str(max(int(x.version) for x in versions))
-
-        # 1. Assign challenger
-        client.set_registered_model_alias(MODEL_NAME, "challenger", v)
-        challenger_model = client.get_model_version_by_alias(MODEL_NAME, "challenger")
-        assert str(challenger_model.version) == str(v)
-
-        # 2. Run promotion gate on challenger
-        gate_res = verify_promotion_gate(f"models:/{MODEL_NAME}@challenger", metadata=metadata)
-        assert gate_res["status"] == "PASSED"
-
-        # 3. Assign champion
-        client.set_registered_model_alias(MODEL_NAME, "champion", v)
-        champion_model = client.get_model_version_by_alias(MODEL_NAME, "champion")
-        assert str(champion_model.version) == str(v)
-
-        # 4. Load-and-predict round trip via models:/edgetwin-risk@champion
-        loaded = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}@champion")
-        sample_raw = pd.DataFrame(
-            {
-                "Air_Temperature_C": [25.0],
-                "Process_Temperature_C": [35.0],
-                "Rotational_Speed_RPM": [1500.0],
-                "Torque_Nm": [40.0],
-                "Vibration_mm_s": [1.2],
-                "Pressure_bar": [4.0],
-                "Current_A": [12.0],
-                "Voltage_V": [220.0],
-                "Tool_Wear_Min": [50.0],
-                "Operating_Hours": [100.0],
-                "Machine_Type": ["L"],
-            }
-        )
-        res = loaded.predict(sample_raw)
-        assert len(res) == 1
-        assert list(res.columns) == ["calibrated_probability", "failure_prediction", "risk_band"]
-        assert 0.0 <= res["calibrated_probability"].iloc[0] <= 1.0
+            res = loaded.predict(sample_raw)
+            assert len(res) == 1
+            assert list(res.columns) == [
+                "calibrated_probability",
+                "failure_prediction",
+                "risk_band",
+            ]
+            assert 0.0 <= res["calibrated_probability"].iloc[0] <= 1.0
+        finally:
+            mlflow.set_tracking_uri(orig_tracking_uri)

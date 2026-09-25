@@ -1,0 +1,49 @@
+scenario_id: SCN-03-OVERSTRAIN
+name: Overstrain Failure
+description: Mechanical overload combined with elevated tool wear, causing high torque and power surge.
+machine_id: MOT-1001
+duration_steps: 100
+tick_interval_s: 1.0
+seed: 42
+
+baseline:
+  air_temp_c:
+    mean: 25.4
+    std: 0.5
+  process_temp_c:
+    mean: 35.3
+    std: 0.6
+  rotational_speed_rpm:
+    mean: 1548.0
+    std: 20.0
+  torque_nm:
+    mean: 40.1
+    std: 2.0
+  vibration_mm_s:
+    mean: 2.5
+    std: 0.3
+  pressure_bar:
+    mean: 5.5
+    std: 0.4
+  current_a:
+    mean: 12.0
+    std: 0.5
+  voltage_v:
+    mean: 415.0
+    std: 2.0
+  tool_wear_min: 215.0
+  tool_wear_rate: 0.1
+  operating_hours: 10000.0
+
+fault:
+  type: ramp
+  trigger_step: 30
+  duration_steps: 40
+  target_values:
+    torque_nm: 75.0
+    current_a: 22.0
+
+acceptance_targets:
+  expected_risk_band: CRITICAL
+  min_calibrated_probability: 0.16
+  expected_health_state: CRITICAL

@@ -1,0 +1,50 @@
+scenario_id: SCN-04-POWER-FAILURE
+name: Power Failure
+description: Electrical supply phase perturbation causing current surge, voltage sag, and apparent power anomaly.
+machine_id: MOT-1001
+duration_steps: 90
+tick_interval_s: 1.0
+seed: 42
+
+baseline:
+  air_temp_c:
+    mean: 25.4
+    std: 0.5
+  process_temp_c:
+    mean: 35.3
+    std: 0.6
+  rotational_speed_rpm:
+    mean: 1548.0
+    std: 20.0
+  torque_nm:
+    mean: 40.1
+    std: 2.0
+  vibration_mm_s:
+    mean: 2.5
+    std: 0.3
+  pressure_bar:
+    mean: 5.5
+    std: 0.4
+  current_a:
+    mean: 12.0
+    std: 0.5
+  voltage_v:
+    mean: 415.0
+    std: 2.0
+  tool_wear_min: 50.0
+  tool_wear_rate: 0.1
+  operating_hours: 10000.0
+
+fault:
+  type: step
+  trigger_step: 30
+  trip_delay_steps: 10
+  target_values:
+    current_a: 32.0
+    voltage_v: 330.0
+  trip_code: TRIP_OVERLOAD
+
+acceptance_targets:
+  expected_risk_band: CRITICAL
+  min_calibrated_probability: 0.16
+  expected_health_state: CRITICAL

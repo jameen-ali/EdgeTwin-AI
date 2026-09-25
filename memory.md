@@ -16,8 +16,71 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-014]** Unsupervised anomaly detection and Layer 4 Health Score completed. IsolationForest (contamination=0.02, 150 trees) trained on 6,081 healthy training rows with 14 features. Normalized scores [0, 1] with zero-denominator & NaN guards. Health score composite index $[0, 100]$ with strictly clamped sensor penalty $[0, 15]$. Deterministic state precedence hierarchy: OFFLINE > MAINTENANCE_REQUIRED (operational override) > CRITICAL > WARNING > HEALTHY. Single final test evaluation on held-out test set: Recall = 0.8963, Precision = 0.7610, F1 = 0.8231, Brier = 0.02055. 220 tests pass.
 - **[T-015]** Model explainability layer implemented: `EdgeTwinExplainer` using `shap.TreeExplainer` operating in model log-odds margin space. Dynamic feature alignment via `preprocessor.get_feature_names_out()`. Strict additivity guard enforced ($|\sum \phi_i + \text{base\_value} - \text{margin}| \le 10^{-4}$, measured discrepancy $\approx 2.03 \times 10^{-6}$). Zero-dependency fallback via native XGBoost `Booster.predict(..., pred_contribs=True)` producing identical attributions. Latency SLA measured on validation telemetry: mean = 19.24 ms, p95 = 20.12 ms (< 100 ms SLA passed). Global importance table computed on validation background and saved to `artifacts/feature_importance_global.csv`. Mandatory honesty disclaimer included on all outputs. 31 tests pass.
 - **[T-016]** Model packaging, registration, and governance implemented: `EdgeTwinRiskModel` (`mlflow.pyfunc.PythonModel`) wrapping calibrated S05 champion. Ingestion contract supports raw telemetry (10 sensors + Machine_Type) with auto-derivation of physics features (`+physics`), missing sensor values, and unseen categories. Automated 10-step technical promotion gate enforces schema, bounds, threshold 0.16, risk-band rules, and metadata before champion promotion. Model registered in MLflow under `edgetwin-risk` (Version 2) with aliases `challenger` and `champion`. Verified round-trip load and inference via `models:/edgetwin-risk@champion`. Model card generated in `docs/ml/model_card.md` using frozen S04/S05 metrics (ZERO test set re-evaluation). 16 tests pass.
+- **[T-020]** Telemetry contract v1 implemented: JSON Schema Draft 2020-12 (`docs/api/telemetry.v1.schema.json`, `edgetwin.telemetry.v1`) with null support, strict sensor ranges (`SENSOR_RANGES`), quality flags, and edge diagnostic fields. Implemented `TelemetryValidator` with safe JSON parsing, schema enforcement, topic consistency, leakage guard rejecting forbidden fields, sequence tracking, and diagnostic discrepancy detection ($\Delta T = 0.2\,^\circ\text{C}$, apparent power = $5.0\text{ VA}$). Implemented `telemetry_to_feature_df` adapter resolving `Machine_Type` via `MACHINE_ID_PREFIX_MAP` and emitting exactly 11 raw columns. 55 tests pass.
+- **[T-021]** Scenario specification and deterministic process model implemented: `SimulatedMachine` with coupled physical process equations, deterministic seed (`seed=42`) and timestamps, and 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Created 8 declarative YAML scenarios (`healthy_nominal.yaml`, `heat_dissipation.yaml`, `overstrain.yaml`, `power_failure.yaml`, `tool_wear.yaml`, `random_vibration.yaml`, `sensor_dropout.yaml`, `machine_offline.yaml`) with full documentation of empirical parameters vs simulation assumptions in `docs/dataset/fault_signatures.md`. All 8 scenarios passed detection targets against frozen `models:/edgetwin-risk@champion`, IsolationForest, and Health Score engine. Zero test set access. 13 tests pass.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S07 — T-020 Telemetry Contract & T-021 Process Model (2026-09-25)
+
+### Task completion
+- **Status:** DONE (T-020 and T-021)
+- **Branch:** `feat/T-020-T-021-telemetry-scenarios`
+- **Base Commit:** `6f9befc` (S06 champion baseline)
+- **Files created:**
+  - `docs/api/telemetry.v1.schema.json` (JSON Schema Draft 2020-12, canonical ID: `edgetwin.telemetry.v1`)
+  - `simulation/__init__.py`
+  - `simulation/contract.py` (`TelemetryValidator`, `TelemetryValidationResult`, `telemetry_to_feature_df`)
+  - `simulation/process_model.py` (`SimulatedMachine`, 5-state FSM, coupled physics equations)
+  - `simulation/scenarios/` (8 declarative YAML scenario files: `healthy_nominal.yaml`, `heat_dissipation.yaml`, `overstrain.yaml`, `power_failure.yaml`, `tool_wear.yaml`, `random_vibration.yaml`, `sensor_dropout.yaml`, `machine_offline.yaml`)
+  - `docs/dataset/fault_signatures.md` (empirical vs assumed parameters breakdown for all 8 scenarios)
+  - `tests/contract/test_telemetry_contract.py` (39 contract & validation tests)
+  - `tests/contract/test_telemetry_ml_compat.py` (16 ML compatibility & leakage tests)
+  - `tests/simulation/test_scenarios.py` (13 process model & scenario validation tests)
+- **Files modified:** `pyproject.toml` (added `jsonschema>=4.20,<5` and `pyyaml>=6.0,<7`), `tasks.md`, `memory.md`, `tests/mlops/test_register.py` (test isolation tracking URI restoration)
+
+### Rule 10 Dependency Justifications [DECISION]
+1. `jsonschema>=4.20,<5`: [FACT] Required for RFC-compliant JSON Schema Draft 2020-12 validation of wire telemetry payloads (`docs/api/telemetry.v1.schema.json`). Provides schema validation, type checking, required field enforcement, and structured error reporting without requiring heavyweight runtime modeling libraries like Pydantic (which was explicitly prohibited).
+2. `pyyaml>=6.0,<7`: [FACT] Required for loading declarative fault scenario specifications (`simulation/scenarios/*.yaml`). Decouples simulation configuration (fault injection step, duration, ramp parameters, initial conditions) from Python simulator logic, satisfying the requirement that scenario definitions live in YAML rather than hardcoded Python.
+
+### T-020 Telemetry Contract v1 [SPECIFICATION & AUDIT]
+- **Canonical Schema ID:** `edgetwin.telemetry.v1` (Draft 2020-12).
+- **Top-level required fields:** `schema`, `machine_id`, `seq`, `ts`, `provenance`, `fw`, `signals`, `quality`, `edge`.
+- **Machine ID pattern:** `^[A-Z]{3}-[0-9]{4}$`.
+- **Provenance enum:** `SIMULATED`, `REPLAY`, `REAL`.
+- **Signals:** 10 raw sensors (`air_temp_c`, `process_temp_c`, `rotational_speed_rpm`, `torque_nm`, `vibration_mm_s`, `pressure_bar`, `current_a`, `voltage_v`, `tool_wear_min`, `operating_hours`). All signals support `number` OR `null`. Null values are never converted to zero; they pass through as `np.nan` for the champion model's median imputer.
+- **Sensor ranges:** Authoritative bounds sourced strictly from `ml.data.schema.SENSOR_RANGES`. Out-of-bounds sensor values are flagged with quality `OUT_OF_RANGE` but are NOT silently clipped.
+- **Quality enum:** `OK`, `OUT_OF_RANGE`, `STALE`, `MISSING`, `LIMIT_WARN`, `LIMIT_ALARM`. Missing signals in dictionary are assigned `MISSING`.
+- **Edge diagnostic fields:** `delta_t_c`, `power_va`, `trip`, `buffered`. Strictly diagnostic; NEVER passed to ML model.
+- **Diagnostic discrepancy comparison:** Backend independently calculates $\Delta T = \text{Process} - \text{Air}$ and $\text{Apparent Power} = V \cdot I$, comparing against edge values using approved tolerances ($\Delta T = 0.2\,^\circ\text{C}$, Apparent Power = $5.0\text{ VA}$). Discrepancies logged without causing ML rejection.
+- **Machine Type resolution:** Resolved via `ml.data.schema.MACHINE_ID_PREFIX_MAP` (`CMP` -> Compressor, `PMP` -> Pump, `CNC` -> CNC_Machine, `CNV` -> Conveyor, `MOT` -> Motor). Unrecognized prefixes map to `"Unknown"` without raising an unhandled exception.
+- **Leakage guards:** Payload rejected if forbidden leakage fields are present (`Failure_Type`, `Machine_Failure`, `Sensor_Batch_Code`, `Checksum_Flag`). Operational metadata (`machine_id`, `ts`, `seq`, `provenance`, `fw`, `quality`, `edge`) stripped by `telemetry_to_feature_df`. Adapter outputs exactly 11 columns (10 raw sensors + `Machine_Type`) in PascalCase, and champion model auto-derives the 3 physics features internally.
+
+### T-021 Deterministic Process Model & Scenarios [MEASURED]
+- **Process Model:** `SimulatedMachine` implements coupled thermodynamic and electro-mechanical process equations, maintaining realistic dependencies ($\Delta T \propto \text{Power} / \text{RPM}$, $\text{Current} \propto \text{Torque} / \text{Voltage}$, $\text{Vibration} \propto \text{Wear} \cdot \text{Torque}$, etc.).
+- **Five-state FSM:** `STOPPED` -> `STARTING` -> `RUNNING` -> `DEGRADING` -> `TRIPPED` with documented transition rules.
+- **Determinism:** Fixed random seed (`seed: 42`) and deterministic ISO-8601 replay timestamp sequencing across all runs.
+- **Measured Scenario Evaluations against frozen `models:/edgetwin-risk@champion`:**
+  - **SCN-01 (Healthy Nominal):** Mean $p_{\text{fail}} = 0.0117$, max $p_{\text{fail}} = 0.0292 \le 0.05$. 0 false alarms across 60 steps. All risk bands `LOW`. Target $\le 0.05$ PASSED.
+  - **SCN-02 (Heat Dissipation):** Baseline $p_{\text{fail}} = 0.0105$; degraded $p_{\text{fail}} = 0.8940$ (max $0.8969$). Model risk band elevated to `CRITICAL` ($p \ge 0.80$). Target $\ge 0.16$ PASSED.
+  - **SCN-03 (Overstrain):** Baseline $p_{\text{fail}} = 0.0171$; degraded $p_{\text{fail}} = 0.8790$ (max $0.8966$). Model risk band elevated to `CRITICAL` ($p \ge 0.80$). Target $\ge 0.16$ PASSED.
+  - **SCN-04 (Power Failure):** Active fault $p_{\text{fail}} = 0.8992$ (max $0.8995$). After 10s persistence, edge hardware safety trips (`state=TRIPPED`, `trip_code="TRIP_OVERLOAD"`), dropping current to 0A. Target $\ge 0.16$ PASSED.
+  - **SCN-05 (Tool Wear):** Final tool wear reaches $254.5\text{ min} \ge 240\text{ min}$. Layer 4 health score triggers deterministic operational override to `MAINTENANCE_REQUIRED`. Degraded model risk $p_{\text{fail}} = 0.8886$ (`CRITICAL`). Target PASSED.
+  - **SCN-06 (Random Vibration):** Fault peak $p_{\text{fail}} = 0.8973$ (max $0.8984$), risk band `CRITICAL`. Target $\ge 0.16$ PASSED.
+  - **SCN-07 (Sensor Dropout):** Null signals flagged with `MISSING` quality; model evaluates safely with median imputation ($p_{\text{fail}} = 0.0125$). Target PASSED.
+  - **SCN-08 (Machine Offline):** Telemetry stream intentionally stops after step 10. Digital Twin synchronization verifies `LIVE` -> `STALE` -> `OFFLINE` state transitions without manufacturing synthetic predictions. Target PASSED.
+- **Top SHAP Attributions (TreeExplainer on champion):**
+  - SCN-02 (Heat Dissipation): `['Process_Temperature_C', 'Current_A', 'Tool_Wear_Min']` (Thermal and load features drive failure probability).
+  - SCN-06 (Random Vibration): `['Vibration_mm_s', 'Tool_Wear_Min', 'Pressure_bar']` (Vibration is dominant driver).
+- **Acceptance Criteria Summary:** 8/8 scenarios executed and PASSED their detection and operational targets. Zero criteria unmet.
+
+### Test Set Protection [GOVERNANCE]
+- The held-out test partition (`data/test/`) was strictly NOT accessed during S07.
+- No new evaluations or metric calculations on held-out data were performed.
+- All scenario calibrations and distributions were derived exclusively from non-test training distributions and physics domain bounds.
+
 
 ---
 

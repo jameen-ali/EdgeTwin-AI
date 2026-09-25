@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edgetwin.ai/schemas/telemetry.v1.json",
+  "title": "EdgeTwinTelemetryMessageV1",
+  "description": "Authoritative EdgeTwin AI Telemetry Contract v1 for edge, simulation, and backend ingestion.",
+  "type": "object",
+  "required": [
+    "schema",
+    "machine_id",
+    "seq",
+    "ts",
+    "provenance",
+    "fw",
+    "signals",
+    "quality",
+    "edge"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "edgetwin.telemetry.v1"
+    },
+    "machine_id": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}-[0-9]{4}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "type": "string",
+      "enum": ["SIMULATED", "REPLAY", "REAL"]
+    },
+    "fw": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+.*$"
+    },
+    "signals": {
+      "type": "object",
+      "required": [
+        "air_temp_c",
+        "process_temp_c",
+        "rotational_speed_rpm",
+        "torque_nm",
+        "vibration_mm_s",
+        "pressure_bar",
+        "current_a",
+        "voltage_v",
+        "tool_wear_min",
+        "operating_hours"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "air_temp_c": {
+          "type": ["number", "null"],
+          "description": "Ambient air temperature in deg C. Range: [0.0, 60.0]"
+        },
+        "process_temp_c": {
+          "type": ["number", "null"],
+          "description": "Machine process temperature in deg C. Range: [0.0, 80.0]"
+        },
+        "rotational_speed_rpm": {
+          "type": ["number", "null"],
+          "description": "Shaft rotational speed in RPM. Range: [0.0, 5000.0]"
+        },
+        "torque_nm": {
+          "type": ["number", "null"],
+          "description": "Drive torque in N·m. Range: [0.0, 150.0]"
+        },
+        "vibration_mm_s": {
+          "type": ["number", "null"],
+          "description": "Vibration velocity in mm/s RMS. Range: [0.0, 20.0]"
+        },
+        "pressure_bar": {
+          "type": ["number", "null"],
+          "description": "Fluid pressure in bar. Range: [0.0, 20.0]"
+        },
+        "current_a": {
+          "type": ["number", "null"],
+          "description": "Electrical phase current in A. Range: [0.0, 50.0]"
+        },
+        "voltage_v": {
+          "type": ["number", "null"],
+          "description": "Electrical supply voltage in V. Range: [300.0, 500.0]"
+        },
+        "tool_wear_min": {
+          "type": ["number", "null"],
+          "description": "Cumulative tool wear in minutes. Range: [0.0, 300.0]"
+        },
+        "operating_hours": {
+          "type": ["number", "null"],
+          "description": "Lifetime operating runtime in hours. Range: [0.0, 25000.0]"
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["OK", "OUT_OF_RANGE", "STALE", "MISSING", "LIMIT_WARN", "LIMIT_ALARM"]
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "delta_t_c",
+        "power_va",
+        "trip",
+        "buffered"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "delta_t_c": {
+          "type": ["number", "null"],
+          "description": "Edge diagnostic temperature differential in deg C"
+        },
+        "power_va": {
+          "type": ["number", "null"],
+          "description": "Edge diagnostic apparent power in VA"
+        },
+        "trip": {
+          "type": ["string", "null"],
+          "description": "Edge hardware safety trip code or null"
+        },
+        "buffered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of buffered messages queued during disconnect"
+        }
+      }
+    }
+  }
+}

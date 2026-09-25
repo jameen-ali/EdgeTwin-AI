@@ -9,6 +9,8 @@ dependencies = [
     "mlflow>=3.0,<4",
     "xgboost>=3.0,<4",
     "shap>=0.48.0,<1",
+    "jsonschema>=4.20,<5",
+    "pyyaml>=6.0,<7",
 ]
 
 [project.optional-dependencies]
@@ -43,3 +45,4 @@ extend-exclude = '''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--import-mode=importlib"
