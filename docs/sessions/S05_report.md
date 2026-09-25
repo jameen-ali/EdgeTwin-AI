@@ -42,11 +42,20 @@
 
 ### Candidate Operating Points on Validation Data
 - **Sweep:** 41 evenly-spaced candidate thresholds from 0.10 to 0.90 (step 0.02).
+- **Cost Ratio Configuration:** The cost ratio $r = C_{FN} / C_{FP}$ is a configurable operational trade-off parameter. **$r=5$ is evaluated strictly as a project-specific operating point; it is NOT an industrial safety standard or universally mandated ratio.**
 - **F1-Optimal:** $t = 0.50$ (Recall: 0.8045, Precision: 0.8425, F1: 0.8231)
 - **Cost-Optimal ($r=1$):** $t = 0.50$ (Cost: 46)
 - **Cost-Optimal ($r=3$):** $t = 0.16$ (Cost: 95)
 - **Cost-Optimal ($r=5$):** $t = 0.16$ (Recall: 0.8421, Precision: 0.7778, Cost: 137)
 - **Cost-Optimal ($r=10$):** $t = 0.16$ (Cost: 242)
+
+### Operational Trade-Off vs. Performance
+- **Operational Trade-Off, Not Universal Gain:** Lowering the operational decision threshold from $t=0.50$ to $t^*=0.16$ does NOT universally improve model performance. It represents an intentional **operating-point trade-off** where precision is traded for recall (accepting 32 false positives vs 20 false positives on validation) in order to minimize costly missed breakdowns ($r=5$).
+- **Distinction of Dimensions:**
+  - *Calibration Quality:* Platt scaling improves probability reliability (Brier score: 0.02810 $\to$ 0.02619, ECE: 0.02867 $\to$ 0.00391) independently of thresholding.
+  - *Operating-Point Trade-off:* Threshold $t=0.16$ selects an operational trade-off point along the existing curve based on asymmetric downtime economics.
+  - *Ranking Discrimination:* ROC-AUC (0.9822) and PR-AUC (0.8969) are invariant to threshold choice.
+  - *Held-Out Generalization:* Evaluated strictly on the held-out test partition only after all decisions were frozen.
 
 ### PRD Target Evaluation
 - **Target Requirement:** Recall $\ge 0.85$ at Precision $\ge 0.70$.

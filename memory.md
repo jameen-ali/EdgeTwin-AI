@@ -43,6 +43,7 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - Cost-optimal ($r=5$): $t = 0.16$ (Cost = 137, Recall = 0.8421, Precision = 0.7778)
 - Cost-optimal ($r=10$): $t = 0.16$ (Cost = 242)
 - Operational decision threshold frozen at $t^* = 0.16$.
+- Note: $r$ is a configurable parameter; $r=5$ is a project-specific operating point, not an industrial standard. Lowering threshold from 0.50 to 0.16 is an operational trade-off (trading precision for recall to minimize missed failures), NOT a universal improvement in model capability.
 - Risk bands defined: LOW ($p < 0.15$), MEDIUM ($0.15 \le p < 0.16$), HIGH ($0.16 \le p < 0.80$), CRITICAL ($p \ge 0.80$).
 
 ### Unsupervised anomaly detector [T-014 — MEASURED]

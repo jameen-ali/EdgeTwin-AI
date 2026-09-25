@@ -5,6 +5,8 @@
 
 ## Summary of Candidate Operating Points (Validation Set)
 
+The cost ratio $r = C_{FN} / C_{FP}$ is a configurable operational parameter representing the penalty of an unplanned equipment failure (false negative) relative to the cost of an inspection (false positive). **The value $r=5$ is evaluated as a project-specific operating point; it is NOT an industrial safety standard or universally mandated ratio.**
+
 | Strategy | Threshold ($t$) | Precision | Recall | F1 Score | F2 Score | False Positives | False Negatives | Cost ($r=5$) |
 |---|---|---|---|---|---|---|---|---|
 | **Cost-Sensitive ($r=5$) ★** | **0.16** | **0.7778** | **0.8421** | **0.8087** | **0.8284** | **32** | **21** | **137** |
@@ -15,6 +17,12 @@
 | PRD Target (R>=0.85, P>=0.70) | N/A | <0.70 | >=0.85 | — | — | — | — | — |
 
 ★ = Selected operational threshold ($t^*$).
+
+### Operational Trade-Off Interpretation
+- **Not a Universal Performance Gain:** Lowering the operational decision threshold from $t=0.50$ to $t^*=0.16$ is an **operating-point trade-off**, NOT a universal improvement in model discrimination.
+- **Precision vs. Recall Trade-Off:** Lowering $t$ trades precision (accepting more false alarms: 32 FP vs 20 FP on validation) to achieve higher failure capture (Recall: 84.21% vs 80.45%), which minimizes asymmetric total cost when missed breakdowns are heavily penalized ($r=5$).
+- **Ranking Invariance:** Global ranking discrimination (ROC-AUC = 0.9822, PR-AUC = 0.8969) is unaffected by the choice of threshold; thresholding merely selects an operational point along the trade-off curve.
+- **Calibration Independence:** Calibration quality improvement (Brier score reduction from 0.02810 to 0.02619, ECE reduction from 0.02867 to 0.00391) measures probability reliability, which is evaluated independently from the operational decision threshold.
 
 ## Risk Bands Specification
 
