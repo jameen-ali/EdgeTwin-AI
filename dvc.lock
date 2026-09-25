@@ -1,0 +1,29 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m ml.data.prepare --deterministic
+    deps:
+    - path: data/raw/predictive_maintenance_dataset.csv
+      hash: md5
+      md5: 43674ec5c7793e3461e220f476dd89b0
+      size: 1228203
+    - path: ml/data/prepare.py
+      hash: md5
+      md5: 2256b465f4fdfc9c38faa5f8f5971501
+      size: 20597
+    - path: ml/data/schema.py
+      hash: md5
+      md5: 4769344545833dbb5739f641c38eeae9
+      size: 8828
+    params:
+      params.yaml:
+        pipeline.version: T-003/v1
+    outs:
+    - path: data/interim/data_quality_report.json
+      hash: md5
+      md5: 17239f1c8390991ff83baecf93531fdf
+      size: 3740
+    - path: data/interim/predictive_maintenance_prepared.csv
+      hash: md5
+      md5: bdd363db450e80a1c2fdc3cb14376284
+      size: 1220078

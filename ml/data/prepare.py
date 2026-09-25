@@ -1,18 +1,18 @@
 """
-ml/data/prepare.py — EdgeTwin AI reproducible data preparation pipeline.
+ml/data/prepare.py - EdgeTwin AI reproducible data preparation pipeline.
 
 T-003: Replace notebook-only cleaning logic with a tested, reproducible
 Python data-preparation pipeline that fixes defects identified in the
 data audit.
 
 Pipeline order (deterministic):
-    1. load_raw_data()       — read immutable raw CSV
-    2. validate_schema()     — check columns, types, target values
-    3. derive_machine_type() — recover Machine_Type from Machine_ID prefix
-    4. remove_duplicates()   — drop exact duplicates ignoring batch/checksum cols
-    5. validate_ranges()     — flag & nullify impossible sensor values (no clipping)
-    6. build_quality_report()— compile all change counts
-    7. save_outputs()        — write interim CSV + JSON quality report
+    1. load_raw_data()       - read immutable raw CSV
+    2. validate_schema()     - check columns, types, target values
+    3. derive_machine_type() - recover Machine_Type from Machine_ID prefix
+    4. remove_duplicates()   - drop exact duplicates ignoring batch/checksum cols
+    5. validate_ranges()     - flag & nullify impossible sensor values (no clipping)
+    6. build_quality_report()- compile all change counts
+    7. save_outputs()        - write interim CSV + JSON quality report
 
 What this pipeline does NOT do (belongs to later tasks):
     - Imputation (no mean/median/mode/ffill/bfill/0-fill)
@@ -23,8 +23,9 @@ What this pipeline does NOT do (belongs to later tasks):
 Usage:
     python -m ml.data.prepare
     python -m ml.data.prepare --raw PATH --interim DIR
+    python -m ml.data.prepare --deterministic   (used by DVC; fixes timestamp)
 
-Author: T-003 / S02
+Author: T-003 / S02; --deterministic added S03 / T-010
 """
 
 from __future__ import annotations
@@ -306,6 +307,8 @@ def build_quality_report(
     range_report: dict[str, Any],
     missing_before: dict[str, int],
     missing_after: dict[str, int],
+    *,
+    deterministic: bool = False,
 ) -> dict[str, Any]:
     """Compile all preparation statistics into a single quality report dict.
 
@@ -329,15 +332,21 @@ def build_quality_report(
         Per-column null counts before preparation.
     missing_after:
         Per-column null counts after preparation.
+    deterministic:
+        If True, replace the live UTC timestamp with a fixed sentinel string
+        so that the JSON output is byte-identical across runs (required for
+        stable DVC output hashing).  Defaults to False so that interactive
+        CLI runs still record a real timestamp.
 
     Returns
     -------
     dict
         A JSON-serialisable quality report.
     """
+    timestamp_value = "deterministic" if deterministic else datetime.now(UTC).isoformat()
     return {
         "pipeline_version": PIPELINE_VERSION,
-        "pipeline_timestamp_utc": datetime.now(UTC).isoformat(),
+        "pipeline_timestamp_utc": timestamp_value,
         "source": {
             "file": str(raw_path),
             "row_count": raw_shape[0],
@@ -410,12 +419,14 @@ def save_outputs(
 def prepare_dataset(
     raw_path: Path = DEFAULT_RAW_PATH,
     interim_dir: Path = DEFAULT_INTERIM_DIR,
+    *,
+    deterministic: bool = False,
 ) -> dict[str, Any]:
     """Run the full data preparation pipeline end-to-end.
 
     Pipeline order:
-        load → validate_schema → derive_machine_type →
-        remove_duplicates → validate_ranges → build_quality_report →
+        load -> validate_schema -> derive_machine_type ->
+        remove_duplicates -> validate_ranges -> build_quality_report ->
         save_outputs
 
     No imputation, no clipping, no splitting, no feature engineering.
@@ -427,6 +438,10 @@ def prepare_dataset(
         Path to the immutable raw CSV.
     interim_dir:
         Directory for prepared CSV and quality report.
+    deterministic:
+        If True, the quality report JSON uses a fixed timestamp sentinel
+        instead of the real UTC time.  Set by the ``--deterministic`` CLI
+        flag and by the DVC stage so that output hashes are stable.
 
     Returns
     -------
@@ -473,6 +488,7 @@ def prepare_dataset(
         range_report=range_report,
         missing_before=missing_before,
         missing_after=missing_after,
+        deterministic=deterministic,
     )
 
     # 7. Save outputs
@@ -494,7 +510,7 @@ def prepare_dataset(
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="python -m ml.data.prepare",
-        description="EdgeTwin AI — T-003 Data Preparation Pipeline",
+        description="EdgeTwin AI - T-003 Data Preparation Pipeline",
     )
     parser.add_argument(
         "--raw",
@@ -510,6 +526,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="DIR",
         help=f"Output directory for prepared data (default: {DEFAULT_INTERIM_DIR})",
     )
+    parser.add_argument(
+        "--deterministic",
+        action="store_true",
+        default=False,
+        help=(
+            "Replace the live UTC timestamp in the quality report with a fixed "
+            "sentinel string so that JSON output is byte-identical across runs. "
+            "Used by the DVC stage to produce stable output hashes."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -517,7 +543,11 @@ def main(argv: list[str] | None = None) -> None:
     """CLI entry point for the data preparation pipeline."""
     args = _parse_args(argv)
     print(f"[T-003] Loading raw data from: {args.raw}")
-    report = prepare_dataset(raw_path=args.raw, interim_dir=args.interim)
+    report = prepare_dataset(
+        raw_path=args.raw,
+        interim_dir=args.interim,
+        deterministic=args.deterministic,
+    )
 
     src = report["source"]
     out = report["output"]

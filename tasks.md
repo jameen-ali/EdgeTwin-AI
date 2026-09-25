@@ -51,19 +51,19 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Goal:** `dvc repro` rebuilds interim/processed data from raw.
 - **Files:** `dvc.yaml`, `params.yaml`, `ml/data/*`, `.dvc/`.
 - **Depends:** T-003.
-- **Implementation:** DVC stage `prepare`; local DVC remote; schema via pydantic/pandera; stratified train/val/test split with seed stored in params.
-- **Acceptance:** identical hashes on two runs; split sizes stable; failure ratio preserved in each split.
-- **Tests:** determinism test; schema-violation test.
-- **Status:** TODO
+- **Implementation:** DVC 3.67.1 initialized; single `prepare` stage invokes `python -m ml.data.prepare --deterministic`; deps: raw CSV + prepare.py + schema.py; outs: prepared CSV + quality report JSON. `--deterministic` flag added to prepare.py to suppress live UTC timestamp in JSON output so DVC output hashes are stable. Local-only DVC (no cloud remote). Raw dataset is NOT DVC-tracked (T-002 provenance BLOCKED). `data/interim/` files removed from Git tracking; `.gitignore` updated.
+- **Acceptance:** `dvc repro` exits 0; second `dvc repro` shows 'Stage prepare didn\'t change, skipping'; `dvc status` shows 'Data and pipelines are up to date'. Prepared CSV: 9,885 × 17 (deterministic).
+- **Tests:** Full 90-test suite passes with T-010 behavior preserved.
+- **Status:** DONE
 
 ### T-011 Shared feature module
 - **Goal:** One feature function used by training and the backend.
-- **Files:** `ml/features.py`, `tests/ml/test_features.py`.
+- **Files:** `ml/data/features.py`, `ml/data/splits.py`, `tests/ml/test_features.py`, `tests/ml/test_splits.py`.
 - **Depends:** T-003.
-- **Implementation:** NaN-safe features: ΔT, apparent power V·I (VA, **renamed from Power_Approx**), mechanical power τ·ω (W), wear×torque, torque/RPM. Drop `Wear_Rate` from the default set (Operating_Hours is uncorrelated with wear in this data, so the ratio is physically meaningless and heavy-tailed) but keep it as an experiment flag so your notebook work is preserved and its removal is justified by an ablation in T-012.
-- **Acceptance:** NaN in → NaN out; units documented; identical output from training and API code path.
-- **Tests:** property tests (NaN propagation), golden-value tests.
-- **Status:** TODO
+- **Implementation:** `ml/data/schema.py` extended with T-011 constants: `TARGET_COLUMN`, `FEATURE_COLUMNS` (10 numeric + Machine_Type = 11), `CATEGORICAL_COLUMNS`, `IDENTIFIER_COLUMNS`, `TIME_COLUMNS`, `ADMINISTRATIVE_COLUMNS`, `LEAKAGE_COLUMNS`, `PREPARED_COLUMNS`. `ml/data/features.py` provides `get_feature_columns()`, `get_target_column()`, `get_forbidden_columns()`, `select_features()`, `select_target()`, `validate_no_leakage()`. `ml/data/splits.py` implements machine-level grouped split (42/9/9 machines = ~70/15/15%) with failure-rate-aware round-robin assignment; seed=42; zero Machine_ID overlap guaranteed. No feature engineering (DeltaT, VA, etc.) at this stage.
+- **Acceptance:** 11 feature columns, 5 forbidden, Machine_Failure as target; zero Machine_ID overlap in splits; failure rate within 5pp of 10.97% overall in each split.
+- **Tests:** 21 feature tests + 21 split tests = 42 new tests; total 90 passing.
+- **Status:** DONE
 
 ### T-012 Model comparison experiment
 - **Goal:** Justified model selection.

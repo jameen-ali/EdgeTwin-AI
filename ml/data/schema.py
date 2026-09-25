@@ -138,6 +138,66 @@ DUPLICATE_IGNORE_COLUMNS: list[str] = [
 #: Valid values for the binary target column.
 VALID_MACHINE_FAILURE_VALUES: set[int] = {0, 1}
 
+# ---------------------------------------------------------------------------
+# T-011 — Data contract constants
+# ---------------------------------------------------------------------------
+
+#: The supervised prediction target for all ML models.
+TARGET_COLUMN: str = "Machine_Failure"
+
+#: Categorical feature columns (non-numeric, must be encoded before use
+#: by models that do not natively support strings).
+CATEGORICAL_COLUMNS: list[str] = [
+    "Machine_Type",
+]
+
+#: Opaque row identifier; must NEVER be a model input (identifier leakage).
+IDENTIFIER_COLUMNS: list[str] = [
+    "Machine_ID",
+]
+
+#: Temporal metadata column; excluded from model inputs to avoid ordering
+#: leakage in this i.i.d.-snapshot dataset.
+TIME_COLUMNS: list[str] = [
+    "Timestamp",
+]
+
+#: Administrative provenance columns that carry no signal for the failure
+#: prediction task.
+ADMINISTRATIVE_COLUMNS: list[str] = [
+    "Sensor_Batch_Code",
+    "Checksum_Flag",
+]
+
+#: Post-outcome label that directly encodes failure information.
+#: Including this as a feature would constitute direct target leakage.
+LEAKAGE_COLUMNS: list[str] = [
+    "Failure_Type",
+]
+
+#: Ordered list of all columns present in the prepared (interim) dataset.
+#: This is the post-T-003 column contract that downstream tasks depend on.
+PREPARED_COLUMNS: list[str] = EXPECTED_COLUMNS  # same 17 columns
+
+#: Feature columns for supervised ML tasks.
+#:
+#: Includes:
+#:   - 10 numeric sensor/operating measurement columns
+#:   - Machine_Type (categorical, 1-of-5 machine class)
+#:
+#: Excludes (via FORBIDDEN_FEATURE_COLUMNS):
+#:   - Failure_Type  : post-outcome label (leakage)
+#:   - Machine_ID    : opaque identifier
+#:   - Timestamp     : ordering metadata
+#:   - Sensor_Batch_Code : administrative
+#:   - Checksum_Flag     : administrative
+#:
+#: Also excludes Machine_Failure (the target).
+#:
+#: No engineered features (DeltaT, apparent power, etc.) are defined here.
+#: Those are added by a later feature-engineering stage (T-012).
+FEATURE_COLUMNS: list[str] = NUMERIC_SENSOR_COLUMNS + CATEGORICAL_COLUMNS
+
 
 def validate_schema(df: pd.DataFrame) -> dict:
     """Validate that *df* conforms to the expected raw dataset schema.

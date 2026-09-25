@@ -1,0 +1,14 @@
+# Parameters for the EdgeTwin AI data pipeline.
+# All reproducible choices are stored here so they can be tracked by DVC.
+
+pipeline:
+  version: "T-003/v1"     # preparation pipeline version tag
+
+split:
+  seed: 42                 # random seed for all splitting operations
+  train_frac: 0.70         # fraction of Machine_IDs assigned to train
+  val_frac: 0.15           # fraction of Machine_IDs assigned to validation
+  test_frac: 0.15          # fraction of Machine_IDs assigned to test
+  strategy: grouped_machine_id   # split by Machine_ID group, not by row
+  target_col: Machine_Failure    # supervised target column
+  group_col: Machine_ID          # grouping key for leakage prevention

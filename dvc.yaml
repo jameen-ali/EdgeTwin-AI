@@ -1,0 +1,34 @@
+# dvc.yaml — EdgeTwin AI DVC pipeline definition
+#
+# T-010: Reproducible data preparation stage.
+#
+# Stage: prepare
+#   Invokes the T-003 Python preparation pipeline (ml.data.prepare).
+#   --deterministic replaces the live UTC timestamp in the quality report
+#   with a fixed sentinel string so that the JSON output hash is stable
+#   across runs (required for reliable DVC caching).
+#
+# Dependency chain:
+#   data/raw/predictive_maintenance_dataset.csv  (immutable raw dataset)
+#       |
+#   ml/data/prepare.py + ml/data/schema.py       (T-003 pipeline code)
+#       |
+#   data/interim/predictive_maintenance_prepared.csv  (prepared data)
+#   data/interim/data_quality_report.json             (quality report)
+#
+# DO NOT version the raw dataset with DVC.
+# T-002 (dataset provenance) is BLOCKED; false provenance must not be created.
+
+stages:
+  prepare:
+    cmd: python -m ml.data.prepare --deterministic
+    deps:
+      - data/raw/predictive_maintenance_dataset.csv
+      - ml/data/prepare.py
+      - ml/data/schema.py
+    params:
+      - params.yaml:
+          - pipeline.version
+    outs:
+      - data/interim/predictive_maintenance_prepared.csv
+      - data/interim/data_quality_report.json

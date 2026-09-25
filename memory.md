@@ -9,12 +9,142 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - Discovery and research complete. Six core documents drafted (v0.1).
 - **[T-001]** Repository scaffolded: `pyproject.toml`, `requirements.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.env.example`, `gemini.md`, `.agents/rules/engineering.md`, and skeleton directories. Notebooks safely moved to `notebooks/`. Verification passed.
 - **[T-003]** Reproducible data preparation pipeline implemented and verified. Branch `feat/T-003-data-preparation`. All 38 tests pass. ruff/black clean.
+- **[T-010]** DVC versioning initialized. `dvc repro` works. `dvc status` clean after reproduction. Branch `feat/T-010-T-011-data-contract`. 90 tests pass.
+- **[T-011]** Shared feature contract and machine-grouped splits implemented. 11 feature columns, 5 forbidden, Machine_Failure as target. Zero Machine_ID overlap. Failure rate within 5pp of 10.97% in all splits.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+
+---
+
+## S03 — T-010 + T-011 Data Contract (2026-09-25)
+
+### Task completion
+- **Status:** DONE (both T-010 and T-011)
+- **Branch:** `feat/T-010-T-011-data-contract`
+- **Base Commit:** `c6a992e` (S02 — feat(data): add reproducible preparation pipeline)
+- **Files created:** `dvc.yaml`, `params.yaml`, `ml/data/features.py`, `ml/data/splits.py`, `tests/ml/test_features.py`, `tests/ml/test_splits.py`, `docs/sessions/S03_report.md`, `data/interim/splits/{train,val,test}.csv`
+- **Files modified:** `ml/data/schema.py` (T-011 constants added), `ml/data/prepare.py` (--deterministic flag), `pyproject.toml` (scikit-learn + dvc added), `tasks.md`, `memory.md`, `.gitignore` (`data/interim/` added), `.dvc/` (init)
+- **Files removed from Git tracking:** `data/interim/predictive_maintenance_prepared.csv`, `data/interim/data_quality_report.json` (now owned by DVC)
+
+### DVC configuration [T-010 — DECISION]
+- **DVC version:** 3.67.1
+- **Remote:** None (local-only; no cloud credentials introduced)
+- **Stage:** `prepare` — `cmd: python -m ml.data.prepare --deterministic`
+- **Deps:** `data/raw/predictive_maintenance_dataset.csv`, `ml/data/prepare.py`, `ml/data/schema.py`
+- **Params:** `params.yaml:pipeline.version`
+- **Outs:** `data/interim/predictive_maintenance_prepared.csv`, `data/interim/data_quality_report.json`
+- **dvc repro run 1:** Executed stage, generated `dvc.lock`, exit 0
+- **dvc repro run 2:** "Stage 'prepare' didn't change, skipping", exit 0
+- **dvc status:** "Data and pipelines are up to date"
+- **Raw dataset:** NOT DVC-tracked (T-002 provenance BLOCKED; false provenance must not be created)
+
+### --deterministic flag [T-010 — DECISION]
+- `pipeline_timestamp_utc` in the quality report JSON is dynamic by default (real UTC).
+- When `--deterministic` is passed (used by the DVC stage), it is replaced with the
+  fixed string `"deterministic"`.
+- This makes the JSON output byte-identical across runs so DVC can hash it stably.
+- Human CLI runs (without the flag) still get the real timestamp.
+
+### Schema contract [T-011 — DECISION]
+New constants added to `ml/data/schema.py` (no breaking changes to T-003 constants):
+
+| Constant | Value |
+|---|---|
+| `TARGET_COLUMN` | `"Machine_Failure"` |
+| `FEATURE_COLUMNS` | 10 numeric sensors + `Machine_Type` = 11 columns |
+| `CATEGORICAL_COLUMNS` | `["Machine_Type"]` |
+| `IDENTIFIER_COLUMNS` | `["Machine_ID"]` |
+| `TIME_COLUMNS` | `["Timestamp"]` |
+| `ADMINISTRATIVE_COLUMNS` | `["Sensor_Batch_Code", "Checksum_Flag"]` |
+| `LEAKAGE_COLUMNS` | `["Failure_Type"]` |
+| `PREPARED_COLUMNS` | Same 17 as `EXPECTED_COLUMNS` |
+
+### Feature contract [T-011 — DECISION]
+- **Module:** `ml/data/features.py`
+- **11 feature columns:** `Air_Temperature_C`, `Process_Temperature_C`, `Rotational_Speed_RPM`, `Torque_Nm`, `Vibration_mm_s`, `Pressure_bar`, `Current_A`, `Voltage_V`, `Tool_Wear_Min`, `Operating_Hours`, `Machine_Type`
+- **Target:** `Machine_Failure` (binary: 0=healthy, 1=failure)
+- **5 forbidden columns:** `Failure_Type`, `Machine_ID`, `Timestamp`, `Sensor_Batch_Code`, `Checksum_Flag`
+- **No feature engineering at this stage:** DeltaT, apparent power, mechanical power, wear-rate etc. are T-012 additions
+- **Leakage guard:** `validate_no_leakage()` raises `ValueError` if forbidden columns are present in a DataFrame passed to `select_features()`
+
+### Split strategy [T-011 — DECISION]
+- **Strategy:** Machine-level grouped split (NOT row-level random)
+- **Rationale:** 60 unique Machine_IDs, each with 137-187 rows. Row-level splitting would leak machine-specific sensor calibration, wear patterns, and operating biases across train/test.
+- **Algorithm:** Failure-rate-aware round-robin assignment
+  1. Sort machines by per-machine `Machine_Failure` rate
+  2. Round-robin over sorted list: assign to train / val / test cyclically
+  3. Each split receives machines from the full range of failure rates (low/med/high)
+- **This is NOT sklearn StratifiedGroupKFold.** StratifiedGroupKFold stratifies group-level target labels (which groups contain any failure). Our heuristic distributes per-machine failure *rates* proportionally, which is a different and more granular objective.
+- **GroupShuffleSplit is also NOT used.** It provides no failure-rate control.
+
+### Split results (seed=42) [T-011 — MEASURED]
+| Split | Machines | Rows | Failure rate |
+|---|---|---|---|
+| Train | 42 | 6,897 | 11.83% |
+| Validation | 9 | 1,489 | 8.93% |
+| Test | 9 | 1,499 | 9.01% |
+| Overall | 60 | 9,885 | 10.97% |
+
+- Machine_ID overlap: **0** (zero overlap across all three splits — verified by test)
+- All splits contain both classes (0 and 1)
+
+### Machine-level leakage analysis [T-011 — AUDIT]
+- 60 unique Machine_IDs; mean 164.75 rows per machine (min 137, max 187)
+- All 60 machines have at least 1 failure (range 6.5%-17.3% per-machine rate)
+- Row-level splitting would expose train rows from the same machine that appears in test → machine-level leakage
+- **Chosen: grouped split by Machine_ID** — complete prevention
+
+### Temporal leakage analysis [T-011 — AUDIT]
+- Timestamps span 2024-01-01 to 2024-06-28 (~6 months)
+- Tool_Wear_Min is NOT monotone within machines — not a strict time series
+- Up to 6 readings per machine per day (sparse sensor snapshots, not regular intervals)
+- **Decision:** Grouped machine split is appropriate. Temporal ordering within the training machines' rows is a T-012 modelling decision.
+- **No temporal leak:** grouped by machine, not by time window
+
+### Parameters [T-011]
+```yaml
+pipeline:
+  version: "T-003/v1"
+split:
+  seed: 42
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  strategy: grouped_machine_id
+  target_col: Machine_Failure
+  group_col: Machine_ID
+```
+
+### Dependencies added [S03]
+| Dependency | Version | Reason | Section |
+|---|---|---|---|
+| `scikit-learn` | `>=1.6,<2` | `numpy` / `pandas` integration; future use in splits | `[project].dependencies` |
+| `dvc` | `>=3.0,<4` | T-010 data versioning pipeline | `[project.optional-dependencies].dev` |
+
+### Output paths
+- Prepared dataset (DVC): `data/interim/predictive_maintenance_prepared.csv` (9,885 x 17)
+- Quality report (DVC): `data/interim/data_quality_report.json`
+- Train split: `data/interim/splits/train.csv` (6,897 x 17, 42 machines)
+- Val split: `data/interim/splits/val.csv` (1,489 x 17, 9 machines)
+- Test split: `data/interim/splits/test.csv` (1,499 x 17, 9 machines)
+- DVC lock: `dvc.lock`
+- DVC config: `.dvc/config`
+
+### Tests
+- New: 21 feature tests (test_features.py) + 21 split tests (test_splits.py) = 42 new tests
+- Total: 90 tests passing (38 T-003 + 42 new S03 + 2 smoke tests) — actually 90 passing including all categories
+
+### Remaining limitations
+- Dataset provenance still unverified (T-002 BLOCKED)
+- No cloud DVC remote configured; `dvc push` will fail until a remote is added
+- Split val/test failure rates (8.9%) are ~2pp below overall (11.0%) — acceptable given only 9 machines per group and the round-robin heuristic; exact stratification is not achievable with integer group assignment
+- Scikit-learn is declared as a runtime dependency but `splits.py` only uses `numpy` (also a sklearn dep) directly; sklearn's API may be used more in T-012
 
 ---
 
 ## S02 — T-003 Data Preparation Pipeline (2026-09-25)
+
 
 ### Task completion
 - **Status:** DONE

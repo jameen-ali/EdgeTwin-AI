@@ -5,6 +5,7 @@ description = "EdgeTwin AI - Predictive Maintenance"
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.2,<3",
+    "scikit-learn>=1.6,<2",
 ]
 
 [project.optional-dependencies]
@@ -14,6 +15,7 @@ dev = [
     "black==26.5.1",
     "pre-commit==4.6.2",
     "mypy==2.3.1",
+    "dvc>=3.0,<4",
 ]
 
 [tool.setuptools.packages.find]

@@ -34,3 +34,8 @@ Thumbs.db
 
 data/raw/*.csv
 data/processed/*.csv
+
+# DVC-owned interim artifacts (tracked by DVC, not Git)
+data/interim/*.csv
+data/interim/*.json
+data/interim/splits/
