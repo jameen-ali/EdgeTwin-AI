@@ -3,7 +3,9 @@ name = "edgetwin"
 version = "0.1.0"
 description = "EdgeTwin AI - Predictive Maintenance"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pandas>=2.2,<3",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -14,8 +16,8 @@ dev = [
     "mypy==2.3.1",
 ]
 
-[tool.setuptools]
-packages = []
+[tool.setuptools.packages.find]
+where = ["."]
 
 [tool.ruff]
 line-length = 100
@@ -26,6 +28,7 @@ exclude = [
 
 [tool.black]
 line-length = 100
+target-version = ["py311"]
 extend-exclude = '''
 /(
   | notebooks

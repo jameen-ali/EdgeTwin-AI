@@ -30,10 +30,10 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Goal:** Replace notebook-only cleaning with a tested script that does not corrupt data or leak.
 - **Files:** `ml/data/prepare.py`, `ml/data/schema.py`, `tests/ml/test_prepare.py`; notebooks untouched (kept as EDA record).
 - **Depends:** T-001.
-- **Implementation:** (1) derive `Machine_Type` from `Machine_ID` prefix (fixes 339 rows wrongly set to Compressor by mode imputation); (2) drop exact duplicates ignoring `Sensor_Batch_Code/Checksum_Flag` (106 rows); (3) **no imputation** at this stage — keep NaN; (4) range checks flag/nullify impossible values instead of clipping silently (22 Voltage values > 500 V were clipped in the notebook: keep as flagged anomalies); (5) write `data/interim/` with a data-quality report; (6) forbidden-column list constant.
-- **Acceptance:** output row count 9,894; zero Machine_Type mismatches vs ID prefix; NaN preserved; report lists every modified value count.
-- **Tests:** unit tests for prefix mapping, dedupe, range flagging; regression test on row counts.
-- **Status:** TODO
+- **Implementation:** (1) derive `Machine_Type` from `Machine_ID` prefix (490 missing values recovered; 340 of those would have been incorrectly set to Compressor by mode imputation; 0 non-null conflicts); (2) drop exact duplicates ignoring `Sensor_Batch_Code/Checksum_Flag` — derive-first order exposes 115 total duplicates (106 raw + 9 semantic) → 9,885 output rows; (3) **no imputation** at this stage — NaN preserved; (4) range checks flag/nullify impossible values instead of clipping (22 Voltage_V > 500 V nullified); (5) write `data/interim/` with a JSON quality report; (6) forbidden-column list constant `FORBIDDEN_FEATURE_COLUMNS`.
+- **Acceptance:** output row count 9,885 (measured; historical 9,894 was dedup-first order — documented in S02 report); zero Machine_Type mismatches vs ID prefix; NaN preserved; report lists every modified value count.
+- **Tests:** 36 unit tests + 2 existing smoke tests = 38 total passing; T1 prefix mapping, T2 recovery, T3 conflict detection, T4 dedup semantics, T5 NaN preserved, T6 range nullify, T7 no imputation, T8 regression on raw dataset.
+- **Status:** DONE
 
 ### T-004 Research documents from verified sources
 - **Goal:** Convert the discovery report into `docs/research/` (literature, competitors, gap, novelty, dataset comparison).

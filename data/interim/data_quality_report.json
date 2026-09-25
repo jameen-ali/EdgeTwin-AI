@@ -1,0 +1,158 @@
+{
+  "pipeline_version": "T-003/v1",
+  "pipeline_timestamp_utc": "2026-09-25T12:19:15.651167+00:00",
+  "source": {
+    "file": "D:\\Project\\EdgeTwin-AI\\data\\raw\\predictive_maintenance_dataset.csv",
+    "row_count": 10000,
+    "column_count": 17
+  },
+  "output": {
+    "row_count": 9885,
+    "column_count": 17
+  },
+  "schema_validation": {
+    "valid": true,
+    "errors": [],
+    "warnings": []
+  },
+  "machine_type_recovery": {
+    "missing_before": 490,
+    "recovered": 490,
+    "conflicts_detected": 0,
+    "conflicts_overridden": 0,
+    "unknown_prefixes": []
+  },
+  "duplicate_removal": {
+    "comparison_columns": [
+      "Machine_ID",
+      "Timestamp",
+      "Machine_Type",
+      "Air_Temperature_C",
+      "Process_Temperature_C",
+      "Rotational_Speed_RPM",
+      "Torque_Nm",
+      "Vibration_mm_s",
+      "Pressure_bar",
+      "Current_A",
+      "Voltage_V",
+      "Tool_Wear_Min",
+      "Operating_Hours",
+      "Failure_Type",
+      "Machine_Failure"
+    ],
+    "rows_before": 10000,
+    "duplicates_detected": 115,
+    "rows_removed": 115,
+    "rows_after": 9885
+  },
+  "range_validation": {
+    "range_bounds": {
+      "Air_Temperature_C": {
+        "lo": 0.0,
+        "hi": 60.0
+      },
+      "Process_Temperature_C": {
+        "lo": 0.0,
+        "hi": 80.0
+      },
+      "Rotational_Speed_RPM": {
+        "lo": 0.0,
+        "hi": 5000.0
+      },
+      "Torque_Nm": {
+        "lo": 0.0,
+        "hi": 150.0
+      },
+      "Vibration_mm_s": {
+        "lo": 0.0,
+        "hi": 20.0
+      },
+      "Pressure_bar": {
+        "lo": 0.0,
+        "hi": 20.0
+      },
+      "Current_A": {
+        "lo": 0.0,
+        "hi": 50.0
+      },
+      "Voltage_V": {
+        "lo": 300.0,
+        "hi": 500.0
+      },
+      "Tool_Wear_Min": {
+        "lo": 0.0,
+        "hi": 300.0
+      },
+      "Operating_Hours": {
+        "lo": 0.0,
+        "hi": 25000.0
+      }
+    },
+    "violations_per_column": {
+      "Air_Temperature_C": 0,
+      "Process_Temperature_C": 0,
+      "Rotational_Speed_RPM": 0,
+      "Torque_Nm": 0,
+      "Vibration_mm_s": 0,
+      "Pressure_bar": 0,
+      "Current_A": 0,
+      "Voltage_V": 22,
+      "Tool_Wear_Min": 0,
+      "Operating_Hours": 0
+    },
+    "values_nullified_per_column": {
+      "Air_Temperature_C": 0,
+      "Process_Temperature_C": 0,
+      "Rotational_Speed_RPM": 0,
+      "Torque_Nm": 0,
+      "Vibration_mm_s": 0,
+      "Pressure_bar": 0,
+      "Current_A": 0,
+      "Voltage_V": 22,
+      "Tool_Wear_Min": 0,
+      "Operating_Hours": 0
+    },
+    "total_violations": 22,
+    "total_nullified": 22
+  },
+  "missing_values": {
+    "before_preparation": {
+      "Machine_ID": 0,
+      "Timestamp": 0,
+      "Machine_Type": 490,
+      "Air_Temperature_C": 806,
+      "Process_Temperature_C": 135,
+      "Rotational_Speed_RPM": 1024,
+      "Torque_Nm": 130,
+      "Vibration_mm_s": 413,
+      "Pressure_bar": 749,
+      "Current_A": 97,
+      "Voltage_V": 676,
+      "Tool_Wear_Min": 271,
+      "Operating_Hours": 213,
+      "Failure_Type": 0,
+      "Machine_Failure": 0,
+      "Sensor_Batch_Code": 697,
+      "Checksum_Flag": 2595
+    },
+    "after_preparation": {
+      "Machine_ID": 0,
+      "Timestamp": 0,
+      "Machine_Type": 0,
+      "Air_Temperature_C": 806,
+      "Process_Temperature_C": 135,
+      "Rotational_Speed_RPM": 1024,
+      "Torque_Nm": 130,
+      "Vibration_mm_s": 413,
+      "Pressure_bar": 748,
+      "Current_A": 97,
+      "Voltage_V": 698,
+      "Tool_Wear_Min": 271,
+      "Operating_Hours": 213,
+      "Failure_Type": 0,
+      "Machine_Failure": 0,
+      "Sensor_Batch_Code": 694,
+      "Checksum_Flag": 2559
+    }
+  }
+}

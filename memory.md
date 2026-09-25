@@ -8,7 +8,66 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
 - **[T-001]** Repository scaffolded: `pyproject.toml`, `requirements.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.env.example`, `gemini.md`, `.agents/rules/engineering.md`, and skeleton directories. Notebooks safely moved to `notebooks/`. Verification passed.
+- **[T-003]** Reproducible data preparation pipeline implemented and verified. Branch `feat/T-003-data-preparation`. All 38 tests pass. ruff/black clean.
+- **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S02 — T-003 Data Preparation Pipeline (2026-09-25)
+
+### Task completion
+- **Status:** DONE
+- **Branch:** `feat/T-003-data-preparation`
+- **Base commit:** `18a63ec37b890a1007259b3e096d33659c6c98bd` (S01)
+- **Files created:** `ml/__init__.py`, `ml/data/__init__.py`, `ml/data/schema.py`, `ml/data/prepare.py`, `tests/ml/__init__.py`, `tests/ml/test_prepare.py`, `data/interim/predictive_maintenance_prepared.csv`, `data/interim/data_quality_report.json`, `docs/sessions/S02_report.md`
+- **Files modified (project config):** `pyproject.toml` (pandas dependency declared; package discovery enabled; black target-version added), `tasks.md`, `memory.md`
+
+### Measured statistics [AUDIT — S02]
+| Metric | Value |
+|---|---|
+| Raw input rows | 10,000 |
+| Raw input columns | 17 |
+| Machine_Type missing before | 490 |
+| Machine_Type recovered from Machine_ID prefix | 490 |
+| Machine_Type conflicts (non-null vs derived) | 0 |
+| Duplicates detected (derive-first order) | 115 |
+| Output rows | 9,885 |
+| Output columns | 17 |
+| Voltage_V violations (> 500 V) nullified | 22 |
+| All other range violations | 0 |
+| Machine_Type nulls in output | 0 |
+| Missing sensor values preserved (not imputed) | Yes |
+
+### Historical discrepancy reconciliation [AUDIT — S02]
+- **Row count discrepancy:** The previously documented expected output of 9,894 rows was calculated using a dedup-first order (raw NaN Machine_Type is treated as distinct from non-null), which detects 106 duplicates. The T-003 spec mandates derive-first order (schema → derive_machine_type → remove_duplicates), which exposes 9 additional semantic duplicates (rows with NaN Machine_Type that become identical to existing rows after derivation). Derive-first is semantically correct and produces **9,885 rows**. Both orderings and their rationale are documented in `docs/sessions/S02_report.md`.
+- **"339 mislabelled rows" reconciliation:** The figure "339" in prior memory.md/tasks.md referred approximately to the count of missing Machine_Type rows that would have been *incorrectly* assigned Compressor by mode imputation (i.e., non-Compressor rows). The actual figures: 490 missing Machine_Type rows total; 150 of those are CMP prefix (Compressor = correct by accident under mode imputation); 340 would be *incorrectly* assigned Compressor. The "339" was an off-by-one approximation. Corrected to 340 in this session.
+
+### Implementation decisions [DECISION — S02]
+- Pipeline order: schema_validate → derive_machine_type → remove_duplicates → validate_ranges. This is semantically correct: duplicate identity is evaluated on recovered values.
+- Range violations are nullified to NaN (not clipped). Clipping was the notebook defect; nullification + reporting is the correct behaviour.
+- No imputation at this stage. Missing sensor values remain NaN throughout the pipeline and in the output.
+- `Sensor_Batch_Code` and `Checksum_Flag` are retained in the prepared output for traceability; they are excluded from duplicate comparison identity but not dropped from the dataset.
+- `FORBIDDEN_FEATURE_COLUMNS` constant established: `[Failure_Type, Machine_ID, Timestamp, Sensor_Batch_Code, Checksum_Flag]`.
+
+### Dependencies added [S02]
+- `pandas>=2.2,<3` added to `[project].dependencies` in `pyproject.toml`. Justified: introduced as the first production/project Python code using pandas. No new dev or optional dependencies added.
+- `pyproject.toml` package discovery changed from `packages = []` to `[tool.setuptools.packages.find]` to allow `ml` package and sub-packages to be importable after `pip install -e .`.
+- `target-version = ["py311"]` added to `[tool.black]` to resolve Python version mismatch warning with black 26.x running on Python 3.13.
+
+### Output paths
+- Prepared dataset: `data/interim/predictive_maintenance_prepared.csv` (9,885 × 17)
+- Quality report: `data/interim/data_quality_report.json`
+
+### Missing-value policy
+Missing sensor values are preserved as NaN and not imputed. Imputation belongs inside the sklearn `Pipeline` fit on training data only (T-010/T-012) to prevent evaluation leakage.
+
+### Remaining limitations
+- Dataset provenance still unverified (T-002 BLOCKED).
+- `Sensor_Batch_Code` and `Checksum_Flag` are retained in the interim dataset; whether to drop them at the feature engineering stage is a T-011 decision.
+
+---
+
 ## 2. Uploaded project inventory [AUDIT]
 ```
 EdgeTwin-AI/
