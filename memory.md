@@ -19,8 +19,26 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-020]** Telemetry contract v1 implemented: JSON Schema Draft 2020-12 (`docs/api/telemetry.v1.schema.json`, `edgetwin.telemetry.v1`) with null support, strict sensor ranges (`SENSOR_RANGES`), quality flags, and edge diagnostic fields. Implemented `TelemetryValidator` with safe JSON parsing, schema enforcement, topic consistency, leakage guard rejecting forbidden fields, sequence tracking, and diagnostic discrepancy detection ($\Delta T = 0.2\,^\circ\text{C}$, apparent power = $5.0\text{ VA}$). Implemented `telemetry_to_feature_df` adapter resolving `Machine_Type` via `MACHINE_ID_PREFIX_MAP` and emitting exactly 11 raw columns. 55 tests pass.
 - **[T-021]** Scenario specification and deterministic process model implemented: `SimulatedMachine` with coupled physical process equations, deterministic seed (`seed=42`) and timestamps, and 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Created 8 declarative YAML scenarios (`healthy_nominal.yaml`, `heat_dissipation.yaml`, `overstrain.yaml`, `power_failure.yaml`, `tool_wear.yaml`, `random_vibration.yaml`, `sensor_dropout.yaml`, `machine_offline.yaml`) with full documentation of empirical parameters vs simulation assumptions in `docs/dataset/fault_signatures.md`. All 8 scenarios passed detection targets against frozen `models:/edgetwin-risk@champion`, IsolationForest, and Health Score engine. Zero test set access. 13 tests pass.
 - **[T-022, T-023]** Virtual Edge simulator and MQTT broker setup implemented. Mosquitto configured via `docker-compose.yml` with basic unauthenticated local access. `VirtualEdge` wraps the authoritative `SimulatedMachine`, uses `paho-mqtt` 2.0 to emit canonical telemetry on `edgetwin/v1/{machine_id}/telemetry`. Built-in explicit state machine handles network drops with a ring buffer (capacity 1000) and automatic flush on reconnect. Integration tests verify connectivity. Unit tests pass (mocked broker). Rule 10 dependency justified.
+- **[T-040]** Wokwi hardware feasibility spike completed. Evaluated Path A (public cloud broker via Wokwi Public Gateway) vs Path B (local Mosquitto via Wokwi Private Gateway / `host.wokwi.internal`). Path A selected as primary architecture to satisfy PRD §6 zero-recurring-cost requirement without requiring paid Wokwi subscriptions ($7/mo) or proprietary extension licenses. Documented ESP32 MQTT library constraints (`PubSubClient` publish QoS 0 limitation vs `256dpi/arduino-mqtt` and native `esp-mqtt` with QoS 1 support), hardware sensor mapping, and security mitigations. S08 Python Virtual Edge established as permanent offline/CI fallback.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S09 — T-040 Wokwi Hardware Feasibility Spike (2026-09-26)
+
+### Task completion
+- **Status:** DONE (T-040)
+- **Branch:** `feat/T-040-wokwi-feasibility`
+- **Base Commit:** `ab2f7d8` (S08 baseline)
+- **Files created/updated:** `docs/wokwi/connectivity.md`, `docs/sessions/S09_report.md`, `tasks.md`, `memory.md`
+- **Files modified:** `memory.md`, `tasks.md`, `docs/wokwi/connectivity.md`
+
+### Major Architectural Decisions [DECISION]
+1. **Primary Connectivity Path (Path A):** Selected Wokwi ESP32 $\rightarrow$ Wokwi Public Gateway $\rightarrow$ Public Cloud Broker (TLS 8883) $\rightarrow$ Backend. Zero recurring cost; runs in any browser without local helper binaries or paid licenses.
+2. **Offline Fallback:** S08 `VirtualEdge` (`simulation/virtual_edge.py`) retained as the 100% deterministic offline fallback.
+3. **ESP32 MQTT Library Selection:** Disallowed standard `PubSubClient` for QoS 1 publish requirement; designated `256dpi/arduino-mqtt` or native Espressif `esp-mqtt` (`mqtt_client.h`) for T-041 firmware.
+4. **Sensor Simulation Split:** DHT22 (air temp), slide potentiometer (torque/load), and MPU6050 (vibration) mapped to Wokwi virtual hardware; remaining 7 channels synthesized via coupled process equations.
 
 ---
 
