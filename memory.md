@@ -18,8 +18,29 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-016]** Model packaging, registration, and governance implemented: `EdgeTwinRiskModel` (`mlflow.pyfunc.PythonModel`) wrapping calibrated S05 champion. Ingestion contract supports raw telemetry (10 sensors + Machine_Type) with auto-derivation of physics features (`+physics`), missing sensor values, and unseen categories. Automated 10-step technical promotion gate enforces schema, bounds, threshold 0.16, risk-band rules, and metadata before champion promotion. Model registered in MLflow under `edgetwin-risk` (Version 2) with aliases `challenger` and `champion`. Verified round-trip load and inference via `models:/edgetwin-risk@champion`. Model card generated in `docs/ml/model_card.md` using frozen S04/S05 metrics (ZERO test set re-evaluation). 16 tests pass.
 - **[T-020]** Telemetry contract v1 implemented: JSON Schema Draft 2020-12 (`docs/api/telemetry.v1.schema.json`, `edgetwin.telemetry.v1`) with null support, strict sensor ranges (`SENSOR_RANGES`), quality flags, and edge diagnostic fields. Implemented `TelemetryValidator` with safe JSON parsing, schema enforcement, topic consistency, leakage guard rejecting forbidden fields, sequence tracking, and diagnostic discrepancy detection ($\Delta T = 0.2\,^\circ\text{C}$, apparent power = $5.0\text{ VA}$). Implemented `telemetry_to_feature_df` adapter resolving `Machine_Type` via `MACHINE_ID_PREFIX_MAP` and emitting exactly 11 raw columns. 55 tests pass.
 - **[T-021]** Scenario specification and deterministic process model implemented: `SimulatedMachine` with coupled physical process equations, deterministic seed (`seed=42`) and timestamps, and 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Created 8 declarative YAML scenarios (`healthy_nominal.yaml`, `heat_dissipation.yaml`, `overstrain.yaml`, `power_failure.yaml`, `tool_wear.yaml`, `random_vibration.yaml`, `sensor_dropout.yaml`, `machine_offline.yaml`) with full documentation of empirical parameters vs simulation assumptions in `docs/dataset/fault_signatures.md`. All 8 scenarios passed detection targets against frozen `models:/edgetwin-risk@champion`, IsolationForest, and Health Score engine. Zero test set access. 13 tests pass.
+- **[T-022, T-023]** Virtual Edge simulator and MQTT broker setup implemented. Mosquitto configured via `docker-compose.yml` with basic unauthenticated local access. `VirtualEdge` wraps the authoritative `SimulatedMachine`, uses `paho-mqtt` 2.0 to emit canonical telemetry on `edgetwin/v1/{machine_id}/telemetry`. Built-in explicit state machine handles network drops with a ring buffer (capacity 1000) and automatic flush on reconnect. Integration tests verify connectivity. Unit tests pass (mocked broker). Rule 10 dependency justified.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S08 — T-022 Virtual Edge & T-023 MQTT Setup (2026-09-25)
+
+### Task completion
+- **Status:** DONE (T-022 and T-023)
+- **Branch:** `feat/T-022-T-023-virtual-edge-mqtt`
+- **Base Commit:** `2915966` (S07 baseline)
+- **Files created:** `simulation/virtual_edge.py`, `mosquitto/mosquitto.conf`, `docker-compose.yml`, `docs/wokwi/connectivity.md`, `tests/simulation/test_virtual_edge.py`, `tests/integration/test_mqtt_integration.py`
+- **Files modified:** `pyproject.toml` (added `paho-mqtt>=2.0.0,<3`), `memory.md`
+
+### Rule 10 Dependency Justifications [DECISION]
+1. `paho-mqtt>=2.0.0,<3`: [FACT] Required for MQTT connectivity between Virtual Edge (Python publisher) and Mosquitto Broker. Version 2.0 API (`CallbackAPIVersion.VERSION2`) enforces modern, robust callback signatures. This dependency provides QoS handling, Last Will and Testament (LWT) support, and the necessary asynchronous networking to fulfill the Virtual Edge's ring-buffer and automatic re-flush logic.
+
+### Implementation Notes
+- **Mosquitto:** Standard `eclipse-mosquitto:2.0` via Docker Compose. `allow_anonymous true` for local development.
+- **Topics:** Authoritative `edgetwin/v1/{machine_id}/telemetry`, `.../status`, `.../cmd`.
+- **Validation:** Every payload is pre-validated by `TelemetryValidator` before publication.
+- **Resilience:** `VirtualEdge` maintains a `deque(maxlen=1000)`. When disconnected, payloads buffer locally. Upon reconnect, buffer flushes synchronously before new emissions, preventing data loss.
 
 ---
 

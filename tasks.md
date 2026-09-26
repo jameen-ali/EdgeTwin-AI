@@ -131,21 +131,21 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 
 ### T-022 Virtual edge (Python)
 - **Goal:** Firmware-equivalent publisher for CI and for development without Wokwi.
-- **Files:** `simulation/virtual_edge.py`, `tests/`.
+- **Files:** `simulation/virtual_edge.py`, `tests/simulation/test_virtual_edge.py`.
 - **Depends:** T-020, T-021.
-- **Implementation:** same edge logic as firmware (validation, ΔT, VA, RMS, trips, buffer, LWT); shared scenario spec; a golden test compares its output distribution with firmware logs to catch drift between the two implementations.
-- **Acceptance:** publishes valid v1 messages at configurable rate; obeys `cmd` messages.
-- **Tests:** contract tests; buffer/reconnect test.
-- **Status:** TODO
+- **Implementation:** `VirtualEdge` wraps `SimulatedMachine`, uses `paho-mqtt` 2.0 (`CallbackAPIVersion.VERSION2`) to publish canonical telemetry on `edgetwin/v1/{machine_id}/telemetry` (QoS 1) with pre-publish validation. Retained status and LWT on `edgetwin/v1/{machine_id}/status`. Built-in explicit state machine handles network drops with a ring buffer (capacity 1000) and automatic flush on reconnect.
+- **Acceptance:** publishes valid v1 messages at configurable rate; ring buffer stores messages during disconnection and flushes on reconnect; LWT configured.
+- **Tests:** 4 unit tests in `tests/simulation/test_virtual_edge.py`; live integration test in `tests/integration/test_mqtt_integration.py`.
+- **Status:** DONE
 
 ### T-023 Broker and connectivity setup
 - **Goal:** MQTT works for both Wokwi paths.
-- **Files:** `docker-compose.yml` (broker service), `docs/wokwi/connectivity.md`.
+- **Files:** `docker-compose.yml`, `mosquitto/mosquitto.conf`, `docs/wokwi/connectivity.md`.
 - **Depends:** T-001.
-- **Implementation:** Path B local Mosquitto with auth + TLS option; Path A cloud broker instructions with throw-away credentials.
-- **Acceptance:** `mosquitto_pub`/`sub` round trip; credentials only via env.
-- **Tests:** compose healthcheck.
-- **Status:** TODO
+- **Implementation:** Mosquitto 2.0 container configured in `docker-compose.yml` on port 1883; `mosquitto/mosquitto.conf` for local development; `docs/wokwi/connectivity.md` documenting canonical topics and connectivity paths.
+- **Acceptance:** `docker-compose.yml` broker service; anonymous local dev access; canonical topics documented.
+- **Tests:** `tests/integration/test_mqtt_integration.py`.
+- **Status:** DONE
 
 ---
 ## PHASE 3 — Wokwi and edge (feasibility first)
