@@ -41,3 +41,7 @@ data/processed/*.csv
 data/interim/*.csv
 data/interim/*.json
 data/interim/splits/
+
+# Edge firmware local credentials
+edge/config.h
+!edge/config.h.example

@@ -1,0 +1,6 @@
+# Wokwi Arduino Library Dependencies
+DHT sensor library for ESPx
+Adafruit MPU6050
+Adafruit Unified Sensor
+MQTT
+ArduinoJson

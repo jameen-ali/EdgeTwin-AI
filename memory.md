@@ -20,8 +20,28 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-021]** Scenario specification and deterministic process model implemented: `SimulatedMachine` with coupled physical process equations, deterministic seed (`seed=42`) and timestamps, and 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Created 8 declarative YAML scenarios (`healthy_nominal.yaml`, `heat_dissipation.yaml`, `overstrain.yaml`, `power_failure.yaml`, `tool_wear.yaml`, `random_vibration.yaml`, `sensor_dropout.yaml`, `machine_offline.yaml`) with full documentation of empirical parameters vs simulation assumptions in `docs/dataset/fault_signatures.md`. All 8 scenarios passed detection targets against frozen `models:/edgetwin-risk@champion`, IsolationForest, and Health Score engine. Zero test set access. 13 tests pass.
 - **[T-022, T-023]** Virtual Edge simulator and MQTT broker setup implemented. Mosquitto configured via `docker-compose.yml` with basic unauthenticated local access. `VirtualEdge` wraps the authoritative `SimulatedMachine`, uses `paho-mqtt` 2.0 to emit canonical telemetry on `edgetwin/v1/{machine_id}/telemetry`. Built-in explicit state machine handles network drops with a ring buffer (capacity 1000) and automatic flush on reconnect. Integration tests verify connectivity. Unit tests pass (mocked broker). Rule 10 dependency justified.
 - **[T-040]** Wokwi hardware feasibility spike completed. Evaluated Path A (public cloud broker via Wokwi Public Gateway) vs Path B (local Mosquitto via Wokwi Private Gateway / `host.wokwi.internal`). Path A selected as primary architecture to satisfy PRD §6 zero-recurring-cost requirement without requiring paid Wokwi subscriptions ($7/mo) or proprietary extension licenses. Documented ESP32 MQTT library constraints (`PubSubClient` publish QoS 0 limitation vs `256dpi/arduino-mqtt` and native `esp-mqtt` with QoS 1 support), hardware sensor mapping, and security mitigations. S08 Python Virtual Edge established as permanent offline/CI fallback.
+- **[T-041]** ESP32 / Wokwi Firmware v1 implemented in `edge/`. Circuit diagram `edge/diagram.json` models ESP32 DevKit v1, DHT22 (GPIO 15), Slide Potentiometer (GPIO 34 ADC1), MPU6050 (I2C SDA 21, SCL 22), and red trip indicator LED (GPIO 2). Modular C++ firmware implements sensor reading (`sensors.cpp`), coupled process equations and deterministic safety trips (`process_model.cpp`), canonical JSON serialization conforming to `edgetwin.telemetry.v1` (`telemetry.cpp`), bounded FIFO ring buffer (`ring_buffer.cpp`), and 1 Hz non-blocking publish loop (`firmware.ino`) with QoS 1 publishing (`256dpi/arduino-mqtt`), retained LWT on `edgetwin/v1/MOT-1001/status`, and remote command subscription. Safe config template in `config.h.example`. All 6 contract tests pass. Full suite 345 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S16 — T-041 ESP32 / Wokwi Firmware v1 (2026-09-26)
+
+### Task completion
+- **Status:** DONE (T-041)
+- **Branch:** `feat/T-041-esp32-firmware-v1`
+- **Base Commit:** `0dfa4c6` (S09/T-040 baseline)
+- **Files created:** `edge/diagram.json`, `edge/wokwi.toml`, `edge/libraries.txt`, `edge/config.h.example`, `edge/sensors.h`, `edge/sensors.cpp`, `edge/process_model.h`, `edge/process_model.cpp`, `edge/telemetry.h`, `edge/telemetry.cpp`, `edge/ring_buffer.h`, `edge/ring_buffer.cpp`, `edge/firmware.ino`, `tests/contract/test_firmware_contract.py`
+- **Files modified:** `.gitignore`, `memory.md`, `tasks.md`
+
+### Implementation Summary
+- **Circuit Schematic:** `edge/diagram.json` with ESP32 DevKit v1, DHT22 on GPIO 15, slide potentiometer on GPIO 34, MPU6050 on I2C (GPIO 21/22), and red trip LED on GPIO 2 with 220 $\Omega$ resistor.
+- **Sensor Acquisition:** `sensors.cpp` reads DHT22 ambient temperature, 12-bit ADC torque scaling [0.0, 150.0] Nm, and MPU6050 dynamic acceleration vector magnitude.
+- **Coupled Process Equations:** `process_model.cpp` mirrors S07 physics (temperature differential accumulation, electrical inrush/coupling, shaft speed curve, wear progression) and evaluates deterministic safety trips ($\Delta T > 45$ °C, Current $> 45$ A, Vibration $> 15$ mm/s, sustained overload $\ge 32$ A for 10 s).
+- **Wire Contract:** `telemetry.cpp` emits strict `edgetwin.telemetry.v1` JSON with all 10 raw signals, quality dictionary, and edge diagnostics. Zero forbidden ML leakage fields.
+- **Resilience:** `ring_buffer.cpp` provides a 50-message bounded circular buffer for offline store-and-forward.
+- **MQTT:** `firmware.ino` connects via `256dpi/arduino-mqtt` at 1 Hz with QoS 1 telemetry and retained status/LWT.
 
 ---
 

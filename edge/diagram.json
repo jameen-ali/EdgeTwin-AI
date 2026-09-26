@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "author": "EdgeTwin AI",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -120,
+      "left": 150,
+      "attrs": { "temperature": "25.4", "humidity": "50" }
+    },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot",
+      "top": 180,
+      "left": 150,
+      "attrs": { "value": "270" }
+    },
+    {
+      "type": "wokwi-mpu6050",
+      "id": "mpu",
+      "top": -120,
+      "left": -150,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_trip",
+      "top": 180,
+      "left": -120,
+      "attrs": { "color": "red", "label": "TRIP" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 180,
+      "left": -50,
+      "attrs": { "value": "220" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serial:rx", "", [] ],
+    [ "esp:RX", "$serial:tx", "", [] ],
+    [ "dht:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "dht:SDA", "esp:15", "green", [ "v0" ] ],
+    [ "pot:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "pot:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "pot:SIG", "esp:34", "blue", [ "v0" ] ],
+    [ "mpu:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "mpu:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "mpu:SDA", "esp:21", "yellow", [ "v0" ] ],
+    [ "mpu:SCL", "esp:22", "orange", [ "v0" ] ],
+    [ "esp:2", "r1:1", "purple", [ "v0" ] ],
+    [ "r1:2", "led_trip:A", "purple", [ "v0" ] ],
+    [ "led_trip:C", "esp:GND.2", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

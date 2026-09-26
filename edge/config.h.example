@@ -1,0 +1,40 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ============================================================================
+// EdgeTwin AI — ESP32 Firmware Configuration Template
+// Copy to config.h and customize with your network/broker settings.
+// DO NOT commit config.h containing real production secrets.
+// ============================================================================
+
+// Wi-Fi Configuration
+#define WIFI_SSID "Wokwi-GUEST"
+#define WIFI_PASSWORD ""
+#define WIFI_CHANNEL 6
+
+// MQTT Broker Configuration (Path A: Cloud Broker, Path B: Local Broker)
+#define MQTT_HOST "your-broker-url.hivemq.cloud"
+#define MQTT_PORT 8883
+#define MQTT_USE_TLS true
+#define MQTT_USER "demo_user"
+#define MQTT_PASS "demo_pass"
+
+// Machine & Contract Identity
+#define MACHINE_ID "MOT-1001"
+#define FIRMWARE_VERSION "0.2.0"
+#define SCHEMA_ID "edgetwin.telemetry.v1"
+#define PROVENANCE "SIMULATED"
+
+// Hardware Pin Configuration
+#define PIN_DHT 15
+#define PIN_POT 34
+#define PIN_LED_TRIP 2
+#define PIN_I2C_SDA 21
+#define PIN_I2C_SCL 22
+
+// Timing & Resilience
+#define TELEMETRY_INTERVAL_MS 1000
+#define RING_BUFFER_CAPACITY 50
+#define OVERLOAD_TRIP_DELAY_MS 10000
+
+#endif // CONFIG_H
