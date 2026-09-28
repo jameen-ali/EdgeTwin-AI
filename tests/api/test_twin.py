@@ -611,8 +611,14 @@ from api.app.main import app
 
 @pytest.fixture(scope="module")
 def test_client():
+    from api.app.models.user import UserRecord
+    from api.app.security.deps import get_current_ws_user
+
+    mock_user = UserRecord(id=1, username="test_operator", role="OPERATOR", is_active=True)
+    app.dependency_overrides[get_current_ws_user] = lambda: mock_user
     with TestClient(app) as client:
         yield client
+    app.dependency_overrides.pop(get_current_ws_user, None)
 
 
 class TestWebSocketEndpoint:

@@ -231,11 +231,21 @@ def sqlite_db():
 @pytest.fixture()
 def client(sqlite_db: Session) -> TestClient:
     """FastAPI TestClient with overridden get_db dependency and mocked background services."""
+    from api.app.models.user import UserRecord
+    from api.app.security.deps import get_current_user
+
+    mock_user = UserRecord(
+        id=1,
+        username="admin_tester",
+        role="ADMIN",
+        is_active=True,
+    )
 
     def _override_get_db():
         yield sqlite_db
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_current_user] = lambda: mock_user
     with (
         patch("api.app.ingest.mqtt_client.MQTTIngestionClient.start"),
         patch("api.app.ingest.mqtt_client.MQTTIngestionClient.stop"),

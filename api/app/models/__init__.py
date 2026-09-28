@@ -8,6 +8,7 @@ from api.app.models.model_version import ModelVersionRecord
 from api.app.models.prediction import PredictionRecord
 from api.app.models.telemetry import TelemetryRecord
 from api.app.models.twin import TwinSnapshotRecord
+from api.app.models.user import UserRecord
 
 __all__ = [
     "AlertRecord",
@@ -18,4 +19,5 @@ __all__ = [
     "PredictionRecord",
     "TelemetryRecord",
     "TwinSnapshotRecord",
+    "UserRecord",
 ]

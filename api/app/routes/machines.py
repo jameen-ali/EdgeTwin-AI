@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from api.app.db.session import get_db
+from api.app.models.user import UserRecord
 from api.app.schemas.alert import AlertListResponse
 from api.app.schemas.common import ProblemDetails
 from api.app.schemas.feedback import FeedbackCreateRequest, FeedbackDTO
@@ -17,6 +18,8 @@ from api.app.schemas.maintenance import MaintenanceListResponse
 from api.app.schemas.prediction import PredictionListResponse
 from api.app.schemas.telemetry import TelemetryListResponse
 from api.app.schemas.twin import TwinHistoryResponse, TwinStateDTO
+from api.app.security.audit import log_security_event
+from api.app.security.deps import get_current_user
 from api.app.services.alert_service import AlertService
 from api.app.services.feedback_service import FeedbackService
 from api.app.services.machine_service import MachineService
@@ -25,7 +28,11 @@ from api.app.services.prediction_service import PredictionService
 from api.app.services.telemetry_service import TelemetryService
 from api.app.services.twin_query_service import TwinQueryService
 
-router = APIRouter(prefix="/machines", tags=["Machines"])
+router = APIRouter(
+    prefix="/machines",
+    tags=["Machines"],
+    dependencies=[Depends(get_current_user)],
+)
 
 MACHINE_ID_PATTERN = r"^[A-Z0-9_-]{1,32}$"
 
@@ -293,9 +300,21 @@ def submit_feedback(
     payload: FeedbackCreateRequest,
     machine_id: MachineIdPath,
     db: DbDep,
+    current_user: Annotated[UserRecord, Depends(get_current_user)],
 ) -> FeedbackDTO:
-    return FeedbackService.create_feedback(
+    if not payload.technician_id:
+        payload.technician_id = current_user.username
+
+    res = FeedbackService.create_feedback(
         db=db,
         machine_id=machine_id,
         payload=payload,
     )
+    log_security_event(
+        action="FEEDBACK_SUBMIT",
+        user=current_user.username,
+        role=current_user.role,
+        target=machine_id,
+        success=True,
+    )
+    return res

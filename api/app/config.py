@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     # MLflow tracking
     MLFLOW_TRACKING_URI: str = "sqlite:///mlflow.db"
 
+    # Security and Authentication (T-038)
+    JWT_SECRET_KEY: str = "edgetwin-dev-secret-key-do-not-use-in-production-12345678"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -61,11 +68,21 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:
+        origins: list[str]
         if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(f"Invalid CORS_ORIGINS format: {v}")
+            origins = [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
+            origins = [str(i).strip() for i in v if str(i).strip()]
+        elif isinstance(v, str):
+            origins = [v.strip()]
+        else:
+            raise ValueError(f"Invalid CORS_ORIGINS format: {v}")
+
+        if "*" in origins:
+            raise ValueError(
+                "Wildcard CORS origin '*' is prohibited when credentials and authentication are enabled."
+            )
+        return origins
 
 
 @lru_cache

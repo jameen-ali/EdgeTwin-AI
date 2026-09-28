@@ -23,10 +23,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
+from api.app.models.user import UserRecord
+from api.app.security.deps import get_current_ws_user
 from api.app.twin.service import get_twin_service
 from api.app.ws.broadcaster import get_connection_manager
 
@@ -36,7 +38,10 @@ router = APIRouter(tags=["WebSocket"])
 
 
 @router.websocket("/ws/live")
-async def ws_live_all(websocket: WebSocket) -> None:
+async def ws_live_all(
+    websocket: WebSocket,
+    current_user: Annotated[UserRecord, Depends(get_current_ws_user)],
+) -> None:
     """Subscribe to live twin-state updates for ALL machines."""
     manager = get_connection_manager()
     twin_svc = get_twin_service()
@@ -67,7 +72,11 @@ async def ws_live_all(websocket: WebSocket) -> None:
 
 
 @router.websocket("/ws/live/{machine_id}")
-async def ws_live_machine(websocket: WebSocket, machine_id: str) -> None:
+async def ws_live_machine(
+    websocket: WebSocket,
+    machine_id: str,
+    current_user: Annotated[UserRecord, Depends(get_current_ws_user)],
+) -> None:
     """Subscribe to live twin-state updates for a single machine.
 
     Parameters

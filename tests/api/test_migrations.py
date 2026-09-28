@@ -34,17 +34,24 @@ def test_alembic_upgrade_and_downgrade():
             "feedback",
             "maintenance_events",
             "model_versions",
+            "users",
             "alembic_version",
         }
         assert expected_tables.issubset(tables)
 
-        # 3. Check columns and indexes on telemetry table
+        # 3. Check columns and indexes on telemetry and users table
         columns = {c["name"] for c in inspector.get_columns("telemetry")}
         assert "air_temp_c" in columns
         assert "vibration_mm_s" in columns
         assert "quality" in columns
         assert "delta_t_c" in columns
         assert "buffered" in columns
+
+        user_columns = {c["name"] for c in inspector.get_columns("users")}
+        assert "username" in user_columns
+        assert "password_hash" in user_columns
+        assert "role" in user_columns
+        assert "is_active" in user_columns
 
         # 4. Run downgrade to base
         command.downgrade(alembic_cfg, "base")

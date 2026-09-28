@@ -167,10 +167,10 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | T-032 | MQTT ingest + validation + persistence + reconnect | T-020, T-023, T-031 | bad payloads rejected with reason, none crash the consumer | DONE |
 | T-033 | Inference service (load champion, shared features, explain) | T-016, T-011 | p95 inference < 50 ms | DONE |
 | T-034 | Health engine L1–L6 with hysteresis + recommendations | T-014 | full decision table unit-tested | DONE |
-| T-035 | Digital Twin service (state, sync FSM, snapshots) | T-034 | twin updates < 500 ms after ingest; STALE/OFFLINE work | TODO |
-| T-036 | REST API v1 + OpenAPI | T-035 | contract tests pass | TODO |
-| T-037 | WebSocket live stream | T-035 | multi-client fan-out test | TODO |
-| T-038 | JWT auth + 3 roles, command endpoint guard | T-036 | role matrix tested | TODO |
+| T-035 | Digital Twin service (state, sync FSM, snapshots) | T-034 | twin updates < 500 ms after ingest; STALE/OFFLINE work | DONE |
+| T-036 | REST API v1 + OpenAPI | T-035 | contract tests pass | DONE |
+| T-037 | WebSocket live stream | T-035 | multi-client fan-out test | DONE |
+| T-038 | JWT auth + 3 roles, command endpoint guard | T-036 | role matrix tested | DONE |
 
 ## PHASE 5 — Frontend (starts after design reference is received)
 | ID | Goal | Depends | Status |

@@ -14,8 +14,10 @@ from api.app.config import get_settings
 from api.app.ingest.mqtt_client import MQTTIngestionClient
 from api.app.logging import get_logger, setup_logging
 from api.app.routes.alerts import router as alerts_router
+from api.app.routes.auth import router as auth_router
 from api.app.routes.health import router as health_router
 from api.app.routes.machines import router as machines_router
+from api.app.routes.scenarios import router as scenarios_router
 from api.app.schemas.common import ProblemDetails
 from api.app.ws.broadcaster import get_connection_manager
 from api.app.ws.router import router as ws_router
@@ -70,6 +72,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             f"MQTT ingestion client failed to initiate connection: {exc}; will retry automatically"
         )
 
+    # Bootstrap initial admin account if configured in environment (T-038)
+    if settings.ADMIN_PASSWORD:
+        try:
+            from sqlalchemy import select
+
+            from api.app.db.session import SessionLocal
+            from api.app.models.user import UserRecord
+            from api.app.security.passwords import hash_password
+            from api.app.security.roles import UserRole
+
+            with SessionLocal() as db_session:
+                admin_user = db_session.execute(
+                    select(UserRecord).where(UserRecord.username == settings.ADMIN_USERNAME)
+                ).scalar_one_or_none()
+                if admin_user is None:
+                    admin_user = UserRecord(
+                        username=settings.ADMIN_USERNAME,
+                        password_hash=hash_password(settings.ADMIN_PASSWORD),
+                        role=UserRole.ADMIN.value,
+                        is_active=True,
+                    )
+                    db_session.add(admin_user)
+                    db_session.commit()
+                    logger.info(f"Initialized administrative account: {settings.ADMIN_USERNAME}")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Failed to bootstrap admin user during startup: {exc}")
+
     yield
 
     # Graceful shutdown
@@ -103,6 +132,16 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["*"],
     )
+
+    # 2. Security Headers Middleware (T-038)
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next: Any) -> Any:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
 
     # 2. Register Global Exception Handlers (RFC 7807 Problem Details)
     @app.exception_handler(RequestValidationError)
@@ -168,10 +207,12 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     # API v1 prefix probes
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
-    # REST API v1 routes (T-036)
+    # REST API v1 routes (T-036, T-038)
+    app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
     app.include_router(machines_router, prefix=settings.API_V1_PREFIX)
     app.include_router(alerts_router, prefix=settings.API_V1_PREFIX)
-    # WebSocket live stream (T-037) — /ws/live and /ws/live/{machine_id}
+    app.include_router(scenarios_router, prefix=settings.API_V1_PREFIX)
+    # WebSocket live stream (T-037, T-038) — /ws/live and /ws/live/{machine_id}
     app.include_router(ws_router)
 
     return app

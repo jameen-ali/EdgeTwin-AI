@@ -667,9 +667,17 @@ Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, pydantic, paho-mqtt (or aiomqtt), 
 - `shap>=0.48.0,<1`: [T-015] TreeSHAP explainer engine (`shap.TreeExplainer`).
   - *What it does:* Computes game-theoretic local feature attributions (TreeSHAP) in model log-odds margin space with guaranteed numerical additivity ($\sum \phi_i + \text{base} = \text{margin}$) and global feature importance ranking.
   - *Why stdlib/existing tools are insufficient:* Python standard library provides no tree attribution or SHAP implementation. While XGBoost includes native `pred_contribs=True` (which we implemented as an offline fallback), `shap` provides canonical interop, tree path-dependent background perturbation, interaction index utilities, and standardized explainability primitives required by T-015. Declared in `pyproject.toml` as `shap>=0.48.0,<1`.
+- `bcrypt>=4.0,<5`: [T-038] Industrial-strength password hashing with salted key derivation.
+  - *What it does:* Computes one-way cryptographically secure bcrypt password hashes with configurable work factors (rounds=12) and verifies incoming authentication credentials without timing side-channels.
+  - *Why stdlib/existing tools are insufficient:* Python standard library `hashlib` does not provide modern, adaptive, salt-embedded password hashing routines like bcrypt or Argon2. Declared in `pyproject.toml` as `bcrypt>=4.0,<5`.
+- `pyjwt>=2.8.0,<3`: [T-038] JSON Web Token (JWT) encoding and verification.
+  - *What it does:* Signs and validates compact, stateless HMAC-SHA256 (HS256) access tokens with subject, role, issued-at, and expiration claims for REST API and WebSocket connection security.
+  - *Why stdlib/existing tools are insufficient:* Python standard library provides no RFC 7519 JWT implementation or cryptographic signature verification primitives for claims. Declared in `pyproject.toml` as `pyjwt>=2.8.0,<3`.
 
 ## 13. API / database changes
-None yet (v1 draft in architecture.md §8, §12, §13).
+- S10: Alembic migration `0001_initial_schema` creating 8 initial tables: `machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`.
+- S14: REST API v1 prefix `/api/v1` exposed across all domain resources.
+- S15: Alembic migration `0002_add_users_table` creating `users` table for authentication, role assignments (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`), and RBAC enforcement. Mounted `/api/v1/auth/login`, `/api/v1/auth/me`, `/api/v1/scenarios`, `/api/v1/scenarios/inject`, and WebSocket authentication guards on `/ws/live` and `/ws/live/{machine_id}`.
 
 ## 14. Open questions
 1. **Dataset source / licence / generation method?** (blocks T-002)

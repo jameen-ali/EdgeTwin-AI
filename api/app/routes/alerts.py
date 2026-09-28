@@ -9,8 +9,12 @@ from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
 from api.app.db.session import get_db
+from api.app.models.user import UserRecord
 from api.app.schemas.alert import AlertAcknowledgeRequest, AlertDTO, AlertListResponse
 from api.app.schemas.common import ProblemDetails
+from api.app.security.audit import log_security_event
+from api.app.security.deps import get_current_user, require_roles
+from api.app.security.roles import PRIVILEGED_MAINTENANCE_ROLES
 from api.app.services.alert_service import AlertService
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
@@ -58,6 +62,7 @@ def list_alerts(
         datetime | None,
         Query(description="Filter alerts triggered after this timestamp"),
     ] = None,
+    current_user: Annotated[UserRecord, Depends(get_current_user)] = None,  # type: ignore[assignment]
 ) -> AlertListResponse:
     return AlertService.get_alerts(
         db=db,
@@ -75,9 +80,14 @@ def list_alerts(
 @router.patch(
     "/{alert_id}",
     response_model=AlertDTO,
-    summary="Acknowledge or resolve an alert",
-    description="Update the lifecycle status of an alert to ACKNOWLEDGED or RESOLVED.",
+    summary="Acknowledge or resolve an alert (Privileged)",
+    description="Update the lifecycle status of an alert to ACKNOWLEDGED or RESOLVED. Requires Maintenance Engineer or Admin role.",
     responses={
+        401: {"model": ProblemDetails, "description": "Unauthenticated"},
+        403: {
+            "model": ProblemDetails,
+            "description": "Forbidden: Requires Maintenance Engineer or Admin role",
+        },
         404: {"model": ProblemDetails, "description": "Alert not found"},
         422: {"model": ProblemDetails, "description": "Validation error"},
     },
@@ -86,11 +96,22 @@ def acknowledge_alert(
     payload: AlertAcknowledgeRequest,
     alert_id: Annotated[int, Path(ge=1, description="Alert sequence ID")],
     db: DbDep,
+    current_user: Annotated[UserRecord, Depends(require_roles(PRIVILEGED_MAINTENANCE_ROLES))],
 ) -> AlertDTO:
-    return AlertService.acknowledge_alert(
+    resolved_by = payload.resolved_by or current_user.username
+    res = AlertService.acknowledge_alert(
         db=db,
         alert_id=alert_id,
-        resolved_by=payload.resolved_by,
+        resolved_by=resolved_by,
         notes=payload.notes,
         new_status=payload.status,
     )
+    log_security_event(
+        action="ALERT_ACKNOWLEDGE",
+        user=current_user.username,
+        role=current_user.role,
+        target=str(alert_id),
+        success=True,
+        details={"status": payload.status, "notes": payload.notes},
+    )
+    return res
