@@ -657,5 +657,11 @@ class TestWebSocketEndpoint:
         before = mgr.active_count
         with test_client.websocket_connect("/ws/live"):
             assert mgr.active_count == before + 1
-        # After disconnect count returns
+        # After disconnect count returns (poll briefly for async cleanup)
+        import time
+
+        for _ in range(20):
+            if mgr.active_count == before:
+                break
+            time.sleep(0.05)
         assert mgr.active_count == before

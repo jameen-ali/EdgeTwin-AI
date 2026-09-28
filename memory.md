@@ -7,7 +7,9 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 ---
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-043]** S17 — Wokwi Simulation Automation, CI Integration & Edge-to-Backend Verification completed. Branch `feat/T-043-T-044-wokwi-ci`. Implemented automated simulation harness (`simulation/wokwi_runner.py`) orchestrating native C++ firmware testing via host g++, Wokwi CLI execution with explicit prerequisite detection (without fabricating passes), and authoritative E2E edge-to-backend pipeline execution. Authored 10-stage integration procedure and troubleshooting guide in `docs/wokwi/integration_guide.md`. Configured deterministic, secret-safe GitHub Actions CI workflow in `.github/workflows/ci.yml` verifying linting, native firmware builds, pytest test suite, and gated Wokwi cloud simulation. Added 7 comprehensive E2E tests in `tests/integration/test_edge_e2e_pipeline.py` verifying nominal telemetry, all 4 hardware safety trips, offline buffer store-and-forward, and sensor dropout resilience. Verified 13 native C++ firmware unit tests, 6 runner tests, 7 E2E tests. Total test suite: 588 passed, 1 skipped. Ruff and Black 100% clean across 129 files. Zero test set leakage.
 - **[T-041, T-042]** S16 — ESP32 Firmware v1/v2 Integration & Verification completed. Branch `feat/T-041-T-042-firmware-v1-v2`. Integrated ESP32 firmware with DHT22, potentiometer, MPU6050, and trip indicator LED. Coupled process equations with 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Enforced 4 deterministic safety trips (DeltaT > 45 C, Current > 45 A, Vibration > 15 mm/s, sustained overload >= 32 A for 10 s). Tripped state de-energizes machine (RPM=0, Torque=0, Current=0, LED=ON, trip latched). Bounded 50-message FIFO ring buffer handles offline queuing and flushes on reconnect without blocking safety loop. Implemented structured command processor (`edge/command.cpp`) rejecting malformed JSON, code injection, and trip bypass. Configured QoS 1 publishing and retained LWT on `edgetwin/v1/{machine_id}/status`, integrated with Digital Twin `mark_offline`. Verified with 13 native C++ unit tests and 19 pytest contract/integration tests. 575 passed, 1 skipped.
+
 - **[T-001]** Repository scaffolded: `pyproject.toml`, `requirements.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.env.example`, `gemini.md`, `.agents/rules/engineering.md`, and skeleton directories. Notebooks safely moved to `notebooks/`. Verification passed.
 - **[T-003]** Reproducible data preparation pipeline implemented and verified. Branch `feat/T-003-data-preparation`. All 38 tests pass. ruff/black clean.
 - **[T-010]** DVC versioning initialized. `dvc repro` works. `dvc status` clean after reproduction. Branch `feat/T-010-T-011-data-contract`. 90 tests pass.
@@ -30,7 +32,49 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 
 ---
 
+## S17 — T-043 Wokwi Simulation Automation, CI Integration & Edge-to-Backend Verification (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-043; T-044 stretch documented)
+- **Branch:** `feat/T-043-T-044-wokwi-ci`
+- **Base Commit:** `417b3ca` (S16 baseline: `feat(firmware): integrate esp32 telemetry and safety controls`)
+- **Files created:**
+  - `simulation/wokwi_runner.py`
+  - `.github/workflows/ci.yml`
+  - `docs/wokwi/integration_guide.md`
+  - `tests/simulation/test_wokwi_runner.py`
+  - `tests/integration/test_edge_e2e_pipeline.py`
+  - `docs/sessions/S17_report.md`
+- **Files modified:**
+  - `conftest.py`
+  - `tests/api/test_twin.py`
+  - `tasks.md`
+  - `memory.md`
+
+### Discovered Task Definitions & Alignment
+1. **T-043 Authoritative Definition:** "Wokwi ↔ backend integration checklist (manual) + optional Wokwi CI scenario if a token/plan allows". Fully implemented via 10-stage integration checklist (`docs/wokwi/integration_guide.md`), automated simulation runner CLI (`simulation/wokwi_runner.py`), full pytest integration suite, and GitHub Actions CI workflow.
+2. **T-044 Authoritative Definition:** "*(stretch)* shallow-tree edge screening, disagreement metric". Preserved as stretch per `tasks.md`. The strict schema v1 constraint (`additionalProperties: false`) and ML stability requirements ensure edge screening remains an optional stretch task without risking contract divergence.
+
+### Verification & CI Highlights [MEASURED]
+1. **Simulation Runner Harness (`simulation/wokwi_runner.py`):**
+   - Inspects host toolchains (`g++`, `wokwi-cli`, `python`).
+   - Compiles and runs native firmware harness with host `g++` (13/13 native C++ tests pass).
+   - Enforces Wokwi Claim Policy: when `wokwi-cli` or `WOKWI_CLI_TOKEN` is unavailable, strictly returns `NOT_EXECUTED` with explicit diagnostic reason rather than fabricating a pass.
+   - Executes authoritative E2E edge-to-backend simulation across 30 ticks, confirming `LIVE` Digital Twin synchronization, health engine evaluation, and DB persistence.
+2. **GitHub Actions CI Workflow (`.github/workflows/ci.yml`):**
+   - 4-job pipeline: `lint` (Ruff + Black), `firmware-native` (g++ compile + run), `test-suite` (full pytest suite + runner JSON check), and `wokwi-simulation` (gated by `WOKWI_CLI_TOKEN` secret with fallback notice).
+   - 100% path-independent, zero hardcoded credentials or machine-specific paths.
+3. **Comprehensive E2E Edge Pipeline Tests (`tests/integration/test_edge_e2e_pipeline.py`):**
+   - Nominal telemetry flow: 15 ticks ingested, validated, persisted, ML scored ($p_{\text{fail}} < 0.16$), twin `LIVE`.
+   - All 4 hardware safety trips verified: `TRIP_THERMAL`, `TRIP_OVERCURRENT`, `TRIP_VIBRATION`, `TRIP_OVERLOAD` transition twin to `TRIPPED`.
+   - Offline buffering & reconnect flush: 10 buffered messages queued during disconnect, LWT sets `OFFLINE`, reconnection flushes batch to DB and restores `LIVE`.
+   - Sensor dropout resilience: null sensor readings handled cleanly via native median imputation without crashing.
+4. **Total Test Suite:** 588 passed, 1 skipped. Ruff & Black 100% clean across 129 files. Zero held-out test leakage.
+
+---
+
 ## S16 — T-041 & T-042 ESP32 Firmware Integration & Verification (2026-09-28)
+
 
 ### Task completion
 - **Status:** DONE (T-041 and T-042)

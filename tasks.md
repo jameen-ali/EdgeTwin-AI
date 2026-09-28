@@ -155,8 +155,18 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | T-040 | **Feasibility spike:** Determine technically viable Wokwi connectivity path (Path A vs Path B) and ESP32 library/sensor feasibility | T-023 | Path A selected (zero recurring cost); library constraints analyzed; decision documented in memory.md | DONE |
 | T-041 | Firmware v1: DHT22 + NTC + MPU6050 + slide pot + process model → contract v1 | T-040, T-021 | valid telemetry at 1 Hz; modular C++ edge architecture; diagram.json; contract tests pass | DONE |
 | T-042 | Firmware v2: validation, ΔT/VA/RMS, safety trips + LED, ring buffer, LWT, `cmd` subscribe | T-041 | trip fires with backend down; buffered messages flush on reconnect; command validation; status/LWT | DONE |
-| T-043 | Wokwi ↔ backend integration checklist (manual) + optional Wokwi CI scenario if a token/plan allows | T-042, T-032 | documented repeatable procedure | TODO |
-| T-044 | *(stretch)* shallow-tree edge screening, disagreement metric | T-016, T-042 | tree ≤ 4 KB; agreement with cloud reported | TODO |
+| T-043 | Wokwi ↔ backend integration checklist (manual) + optional Wokwi CI scenario if a token/plan allows | T-042, T-032 | documented repeatable procedure; CI runner; E2E integration verified | DONE |
+| T-044 | *(stretch)* shallow-tree edge screening, disagreement metric | T-016, T-042 | tree ≤ 4 KB; agreement with cloud reported | TODO (stretch) |
+
+### T-043 Wokwi ↔ backend integration & CI verification
+- **Goal:** Repeatable manual checklist and automated simulation runner verifying edge-to-backend pipeline, plus secret-safe GitHub Actions CI.
+- **Files:** `docs/wokwi/integration_guide.md`, `simulation/wokwi_runner.py`, `.github/workflows/ci.yml`, `tests/simulation/test_wokwi_runner.py`, `tests/integration/test_edge_e2e_pipeline.py`.
+- **Depends:** T-042, T-032.
+- **Implementation:** Documented 10-stage integration checklist for Path A (Cloud HiveMQ TLS 8883) and Path B (Local Mosquitto 1883). Automated simulation runner (`simulation/wokwi_runner.py`) detecting host toolchains, running native firmware tests via host g++, reporting missing Wokwi prerequisites without fabricating execution, and verifying E2E telemetry ingestion into DB and Digital Twin. Multi-stage GitHub Actions CI (`.github/workflows/ci.yml`) covering linting, native C++ firmware tests, pytest suite, and secret-safe Wokwi action.
+- **Acceptance:** 10-stage integration procedure documented; native C++ firmware tests pass; E2E edge-to-backend integration tests pass; Wokwi runner returns deterministic status; CI pipeline defined without hardcoded secrets.
+- **Tests:** 6 tests in `tests/simulation/test_wokwi_runner.py`, 7 tests in `tests/integration/test_edge_e2e_pipeline.py`.
+- **Status:** DONE
+
 
 ---
 ## PHASE 4 — Backend (compact; expanded before start)
