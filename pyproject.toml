@@ -5,13 +5,21 @@ description = "EdgeTwin AI - Predictive Maintenance"
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.2,<3",
-    "scikit-learn>=1.6,<2",
+    "scikit-learn==1.6.1",
     "mlflow>=3.0,<4",
     "xgboost>=3.0,<4",
     "shap>=0.48.0,<1",
-    "jsonschema>=4.20,<5",
+    "jsonschema[format-nongpl]>=4.20,<5",
+    "rfc3339-validator>=0.1.4",
     "pyyaml>=6.0,<7",
     "paho-mqtt>=2.0.0,<3",
+    "fastapi>=0.115.0,<1",
+    "uvicorn>=0.30.0,<1",
+    "pydantic>=2.8.0,<3",
+    "pydantic-settings>=2.5.0,<3",
+    "sqlalchemy>=2.0.0,<3",
+    "alembic>=1.13.0,<2",
+    "psycopg2-binary>=2.9.9,<3",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +30,7 @@ dev = [
     "pre-commit==4.6.2",
     "mypy==2.3.1",
     "dvc>=3.0,<4",
+    "httpx>=0.27.0,<1",
 ]
 
 [tool.setuptools.packages.find]
@@ -46,4 +55,5 @@ extend-exclude = '''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "--import-mode=importlib"

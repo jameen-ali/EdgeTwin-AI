@@ -21,8 +21,85 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-022, T-023]** Virtual Edge simulator and MQTT broker setup implemented. Mosquitto configured via `docker-compose.yml` with basic unauthenticated local access. `VirtualEdge` wraps the authoritative `SimulatedMachine`, uses `paho-mqtt` 2.0 to emit canonical telemetry on `edgetwin/v1/{machine_id}/telemetry`. Built-in explicit state machine handles network drops with a ring buffer (capacity 1000) and automatic flush on reconnect. Integration tests verify connectivity. Unit tests pass (mocked broker). Rule 10 dependency justified.
 - **[T-040]** Wokwi hardware feasibility spike completed. Evaluated Path A (public cloud broker via Wokwi Public Gateway) vs Path B (local Mosquitto via Wokwi Private Gateway / `host.wokwi.internal`). Path A selected as primary architecture to satisfy PRD §6 zero-recurring-cost requirement without requiring paid Wokwi subscriptions ($7/mo) or proprietary extension licenses. Documented ESP32 MQTT library constraints (`PubSubClient` publish QoS 0 limitation vs `256dpi/arduino-mqtt` and native `esp-mqtt` with QoS 1 support), hardware sensor mapping, and security mitigations. S08 Python Virtual Edge established as permanent offline/CI fallback.
 - **[T-041]** ESP32 / Wokwi Firmware v1 implemented in `edge/`. Circuit diagram `edge/diagram.json` models ESP32 DevKit v1, DHT22 (GPIO 15), Slide Potentiometer (GPIO 34 ADC1), MPU6050 (I2C SDA 21, SCL 22), and red trip indicator LED (GPIO 2). Modular C++ firmware implements sensor reading (`sensors.cpp`), coupled process equations and deterministic safety trips (`process_model.cpp`), canonical JSON serialization conforming to `edgetwin.telemetry.v1` (`telemetry.cpp`), bounded FIFO ring buffer (`ring_buffer.cpp`), and 1 Hz non-blocking publish loop (`firmware.ino`) with QoS 1 publishing (`256dpi/arduino-mqtt`), retained LWT on `edgetwin/v1/MOT-1001/status`, and remote command subscription. Safe config template in `config.h.example`. All 6 contract tests pass. Full suite 345 passed, 1 skipped.
+- **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S10 — T-030 FastAPI Skeleton & T-031 Database Schema (2026-09-28)
+
+### Task completion
+- **Status:** DONE (T-030 and T-031)
+- **Branch:** `feat/T-030-T-031-backend-foundation`
+- **Base Commit:** `a5dbffd` (S16/T-041 baseline: `feat(edge): add ESP32 Wokwi firmware v1`)
+- **Files created:**
+  - `api/app/__init__.py`
+  - `api/app/config.py`
+  - `api/app/logging.py`
+  - `api/app/db/__init__.py`
+  - `api/app/db/base.py`
+  - `api/app/db/session.py`
+  - `api/app/models/__init__.py`
+  - `api/app/models/machine.py`
+  - `api/app/models/telemetry.py`
+  - `api/app/models/prediction.py`
+  - `api/app/models/twin.py`
+  - `api/app/models/alert.py`
+  - `api/app/models/feedback.py`
+  - `api/app/models/maintenance.py`
+  - `api/app/models/model_version.py`
+  - `api/app/schemas/__init__.py`
+  - `api/app/schemas/common.py`
+  - `api/app/schemas/health.py`
+  - `api/app/routes/__init__.py`
+  - `api/app/routes/health.py`
+  - `api/app/main.py`
+  - `api/alembic.ini`
+  - `api/migrations/env.py`
+  - `api/migrations/script.py.mako`
+  - `api/migrations/versions/0001_initial_schema.py`
+  - `Dockerfile`
+  - `tests/api/__init__.py`
+  - `tests/api/test_config.py`
+  - `tests/api/test_health.py`
+  - `tests/api/test_errors.py`
+  - `tests/api/test_db.py`
+  - `tests/api/test_models.py`
+  - `tests/api/test_migrations.py`
+  - `tests/api/test_telemetry_persistence.py`
+- **Files modified:**
+  - `pyproject.toml` (added backend dependencies)
+  - `docker-compose.yml` (added postgres:16-alpine and api services)
+  - `.env.example` (added environment configuration template)
+  - `api/README.md` (complete backend documentation)
+  - `tasks.md` (marked T-030 and T-031 DONE)
+  - `memory.md`
+
+### Rule 10 Dependency Justifications [DECISION]
+1. `fastapi>=0.115.0,<1`: [FACT] Modern high-performance asynchronous web framework for REST API and WebSocket services with automatic OpenAPI documentation and dependency injection.
+2. `uvicorn>=0.30.0,<1`: [FACT] Production-ready ASGI web server for executing the FastAPI application.
+3. `pydantic>=2.8.0,<3`: [FACT] Core data validation, typing, and schema serialization library.
+4. `pydantic-settings>=2.5.0,<3`: [FACT] Twelve-factor environment configuration parser with type safety and dotenv integration.
+5. `sqlalchemy>=2.0.0,<3`: [FACT] Authoritative Python SQL toolkit and Object Relational Mapper (ORM) supporting PostgreSQL and SQLite with mapped typed columns (`Mapped[...]`).
+6. `alembic>=1.13.0,<2`: [FACT] Database schema migration tool for deterministic, version-controlled schema evolution.
+7. `httpx>=0.27.0,<1` (dev): [FACT] Required for FastAPI's `TestClient` to perform automated HTTP endpoint and probe testing.
+
+### Database Architecture & Domain Schema [DECISION & MEASURED]
+- **Selected Engine:** PostgreSQL 16 (Postgres Docker container / production) with SQLite compatibility for isolated test suites.
+- **8 Domain Entities:**
+  1. `machines`: Fleet assets keyed by `machine_id` (`MOT-1001`, `PMP-2001`, etc.).
+  2. `telemetry`: Raw time-series telemetry with 10 nullable sensor channels, `quality` JSON, `edge` diagnostics, and unique constraint on `(machine_id, seq)`.
+  3. `predictions`: ML inference outputs (`failure_probability`, `risk_band`, `anomaly_score`, `health_score`, `top_factors` SHAP JSON, `model_version`).
+  4. `twin_snapshots`: Periodic full state objects aligned with ISO 23247.
+  5. `alerts`: Layer 5 alarms (`INFO`, `WARNING`, `CRITICAL`) with lifecycle state.
+  6. `feedback`: Engineer ground truth labels (`CONFIRMED`, `FALSE_ALARM`).
+  7. `maintenance_events`: Logs of inspections and component overhauls.
+  8. `model_versions`: Mirror of MLflow model registry and promotion status.
+- **Migration Verification:** Alembic migration `0001_initial_schema` executes clean `upgrade` -> `downgrade` -> `upgrade` cycles verified by automated unit tests.
+- **API Baseline:** `/health` (liveness), `/ready` (readiness + DB ping), and versioned `/api/v1/*` aliases. RFC 7807 problem details error format. Restricted CORS allow-list.
+
+---
 
 ---
 

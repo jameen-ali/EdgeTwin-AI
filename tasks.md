@@ -162,8 +162,8 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 ## PHASE 4 — Backend (compact; expanded before start)
 | ID | Goal | Depends | Acceptance (short) | Status |
 |---|---|---|---|---|
-| T-030 | FastAPI skeleton, settings, structured logging, `/health`, Dockerfile | T-001 | container serves `/health` | TODO |
-| T-031 | DB schema + Alembic migrations (architecture.md §12) | T-030 | migrate up/down clean | TODO |
+| T-030 | FastAPI skeleton, settings, structured logging, `/health`, `/ready`, Dockerfile | T-001 | container serves `/health` and `/ready`, RFC 7807 error format, CORS | DONE |
+| T-031 | DB schema + Alembic migrations (architecture.md §12) | T-030 | 8 domain tables migrated up/down cleanly with indices & constraints | DONE |
 | T-032 | MQTT ingest + validation + persistence + reconnect | T-020, T-023, T-031 | bad payloads rejected with reason, none crash the consumer | TODO |
 | T-033 | Inference service (load champion, shared features, explain) | T-016, T-011 | p95 inference < 50 ms | TODO |
 | T-034 | Health engine L1–L6 with hysteresis + recommendations | T-014 | full decision table unit-tested | TODO |

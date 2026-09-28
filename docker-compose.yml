@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edgetwin-postgres
+    environment:
+      POSTGRES_DB: edgetwin
+      POSTGRES_USER: edgetwin
+      POSTGRES_PASSWORD: edgetwin_dev_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edgetwin -d edgetwin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   mosquitto:
     image: eclipse-mosquitto:2.0
     container_name: edgetwin-mosquitto
@@ -9,3 +27,27 @@ services:
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edgetwin-api
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://edgetwin:edgetwin_dev_secret@postgres:5432/edgetwin
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
