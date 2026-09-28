@@ -32,6 +32,50 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 
 ---
 
+## S18 — T-050 & T-051 Frontend Foundation & Dashboard UI Setup (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-050 and T-051)
+- **Branch:** `feat/T-050-T-051-frontend-foundation`
+- **Base Commit:** `80eb56a` (S17 baseline: `feat(ci): automate wokwi firmware verification`)
+- **Files created:**
+  - `dashboard/package.json`
+  - `dashboard/tsconfig.json`
+  - `dashboard/tsconfig.node.json`
+  - `dashboard/vite.config.ts`
+  - `dashboard/index.html`
+  - `dashboard/src/index.css`
+  - `dashboard/src/main.tsx`
+  - `dashboard/src/App.tsx`
+  - `dashboard/src/types/auth.ts`, `api.ts`, `machine.ts`, `alert.ts`, `scenario.ts`, `websocket.ts`
+  - `dashboard/src/utils/rbac.ts`, `formatters.ts`
+  - `dashboard/src/api/client.ts`, `websocket.ts`
+  - `dashboard/src/context/AuthContext.tsx`
+  - `dashboard/src/hooks/useAuth.ts`, `useTwinWebSocket.ts`
+  - `dashboard/src/components/common/Button.tsx`, `IconButton.tsx`, `Card.tsx`, `StatusBadge.tsx`, `HealthBadge.tsx`, `Metric.tsx`, `MetricGrid.tsx`, `DataTable.tsx`, `Input.tsx`, `Select.tsx`, `Modal.tsx`, `Toast.tsx`, `LoadingState.tsx`, `EmptyState.tsx`, `ErrorState.tsx`, `ConnectionIndicator.tsx`, `LiveIndicator.tsx`, `RoleGate.tsx`
+  - `dashboard/src/components/layout/AppShell.tsx`, `Sidebar.tsx`, `TopHeader.tsx`, `PageHeader.tsx`
+  - `dashboard/src/pages/LoginPage.tsx`, `DashboardPage.tsx`, `MachinesPage.tsx`, `AlertsPage.tsx`, `MaintenancePage.tsx`, `ScenariosPage.tsx`, `MLOpsPage.tsx`, `SettingsPage.tsx`, `NotFoundPage.tsx`
+  - `dashboard/tests/setup.ts`, `auth.test.tsx`, `rbac.test.ts`, `apiClient.test.ts`, `components.test.tsx`, `websocket.test.ts`
+- **Files modified:**
+  - `tasks.md`
+  - `memory.md`
+
+### Design System Synthesis (Browser Use + Deepgram + LaunchDarkly)
+1. **Core Visual Language:** Dark-first industrial control room (`#0B0B0C` canvas, `#101014` cards, `#18181B` raised surfaces, `#27272A` borders).
+2. **Brand Accents:** Electric cyan (`#149AFB`) for interactive/twin controls, technical green (`#13EF95`) for operational/healthy states, alert orange (`#FE750E`) for warnings, and controlled red (`#EF4444`) for critical trips.
+3. **Sharp vs. Rounded Tension:** Sharp action controls (4px radius buttons/inputs) vs softly rounded content cards (8-16px) and index chips.
+4. **Typography:** Inter (700 with -0.03em letter-spacing for display headings) + JetBrains Mono for telemetry numerals, timestamps, and MQTT topics.
+5. **Data Honesty:** Zero fabricated data; truthful empty states when backend has no active telemetry.
+
+### Verification Highlights [MEASURED]
+1. **Frontend Vitest Suite:** 27 passed across 5 test suites (`auth.test.tsx`, `rbac.test.ts`, `apiClient.test.ts`, `components.test.tsx`, `websocket.test.ts`).
+2. **Frontend Type Check:** `npm run lint` (`tsc --noEmit`) passes with 0 errors.
+3. **Production Bundle:** `npm run build` generates clean Vite production bundle in 2.63s without warnings.
+4. **Backend Regression Suite:** 588 passed, 1 skipped.
+5. **Ruff / Black / Git Diff:** 0 lint errors, 0 format issues, 0 committed secrets.
+
+---
+
 ## S17 — T-043 Wokwi Simulation Automation, CI Integration & Edge-to-Backend Verification (2026-09-29)
 
 ### Task completion

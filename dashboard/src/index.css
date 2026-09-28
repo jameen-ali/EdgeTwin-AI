@@ -1,0 +1,330 @@
+/* ==========================================================================
+   EdgeTwin AI — Design System Stylesheet & Token Architecture
+   Synthesized from: Browser Use, Deepgram, and LaunchDarkly references
+   Visual Identity: Industrial AI Control Room + Technical Developer Console
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------------
+     1. Surfaces & Canvas (Dark-first, near-black industrial palette)
+     ------------------------------------------------------------------------ */
+  --color-canvas: #0b0b0c;
+  --color-canvas-subtle: #09090b;
+  --color-surface: #101014;
+  --color-surface-raised: #18181b;
+  --color-surface-strong: #27272a;
+  --color-surface-input: #141418;
+  --color-surface-hover: rgba(255, 255, 255, 0.04);
+  --color-surface-active: rgba(20, 154, 251, 0.08);
+
+  /* ------------------------------------------------------------------------
+     2. Borders & Separators
+     ------------------------------------------------------------------------ */
+  --color-border: #27272a;
+  --color-border-subtle: #1e1e22;
+  --color-border-hover: #3f3f46;
+  --color-border-active: #149afb;
+  --color-border-strong: #4e4e52;
+
+  /* ------------------------------------------------------------------------
+     3. Text & Content Hierarchy
+     ------------------------------------------------------------------------ */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d4d4d8;
+  --color-text-muted: #71717a;
+  --color-text-disabled: #52525b;
+
+  /* ------------------------------------------------------------------------
+     4. Semantic Brand & Operating Accents
+     ------------------------------------------------------------------------ */
+  /* Primary Edge Accent (Cyan/Blue): Interactive controls, live data, twin */
+  --color-accent: #149afb;
+  --color-accent-hover: #38bdf8;
+  --color-accent-subtle: rgba(20, 154, 251, 0.12);
+  --color-accent-border: rgba(20, 154, 251, 0.3);
+  --color-accent-glow: 0 0 14px rgba(20, 154, 251, 0.35);
+
+  /* Secondary Edge Accent (Green): Operational, healthy, connected, stable */
+  --color-success: #13ef95;
+  --color-success-hover: #34d399;
+  --color-success-subtle: rgba(19, 239, 149, 0.12);
+  --color-success-border: rgba(19, 239, 149, 0.3);
+  --color-success-glow: 0 0 14px rgba(19, 239, 149, 0.35);
+
+  /* Warm Alert Accent (Orange): Warning, attention, operational action */
+  --color-warning: #fe750e;
+  --color-warning-hover: #fb923c;
+  --color-warning-subtle: rgba(254, 117, 14, 0.12);
+  --color-warning-border: rgba(254, 117, 14, 0.35);
+
+  /* Critical Accent (Controlled Red/Pink): Failures, trips, destructive */
+  --color-danger: #ef4444;
+  --color-danger-hover: #f87171;
+  --color-danger-subtle: rgba(239, 68, 68, 0.14);
+  --color-danger-border: rgba(239, 68, 68, 0.35);
+
+  /* Maintenance Accent (Slate Indigo): Scheduled maintenance */
+  --color-maintenance: #8c9ac4;
+  --color-maintenance-subtle: rgba(140, 154, 196, 0.14);
+  --color-maintenance-border: rgba(140, 154, 196, 0.3);
+
+  /* Info / Technical Cyan */
+  --color-info: #008fc1;
+  --color-info-subtle: rgba(0, 143, 193, 0.12);
+
+  /* ------------------------------------------------------------------------
+     5. Typography & Metrics
+     ------------------------------------------------------------------------ */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', monospace;
+
+  --tracking-tighter: -0.035em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+
+  /* ------------------------------------------------------------------------
+     6. Spacing Scale (4px base unit)
+     ------------------------------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ------------------------------------------------------------------------
+     7. Sharp vs. Rounded Tension
+     Actions: Sharp / 4px
+     Content Cards: Rounded 8-14px
+     Status Chips: 4px or Pill
+     ------------------------------------------------------------------------ */
+  --radius-xs: 2px;
+  --radius-sm: 4px;      /* Action controls: buttons, inputs */
+  --radius-md: 8px;      /* Compact cards, dropdowns */
+  --radius-lg: 12px;     /* Major product cards, containers */
+  --radius-xl: 16px;     /* Outer shells, hero product containers */
+  --radius-full: 9999px; /* Status chips, pills */
+
+  /* ------------------------------------------------------------------------
+     8. Motion & Transitions (Operational, subtle, no decorative fluff)
+     ------------------------------------------------------------------------ */
+  --transition-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   CSS Reset & Base Styling
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Accessible focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Typography Classes
+   ========================================================================== */
+.display-title {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tighter);
+  color: var(--color-text-primary);
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.text-caption {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+/* ==========================================================================
+   Micro-animations & Restrained Live Indicators
+   ========================================================================== */
+@keyframes pulse-live {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+    box-shadow: 0 0 8px currentColor;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  animation: pulse-live 2.5s infinite ease-in-out;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ==========================================================================
+   Layout Shell
+   ========================================================================== */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--color-canvas);
+}
+
+.app-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  transition: width var(--transition-normal);
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-canvas);
+}
+
+.app-topheader {
+  height: 56px;
+  min-height: 56px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  z-index: 10;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .app-sidebar {
+    width: 72px;
+    min-width: 72px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    position: relative;
+  }
+  .app-sidebar {
+    position: absolute;
+    left: -240px;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.8);
+  }
+  .app-sidebar.open {
+    left: 0;
+  }
+  .app-content {
+    padding: var(--space-4);
+  }
+}

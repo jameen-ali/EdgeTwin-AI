@@ -185,8 +185,8 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 ## PHASE 5 — Frontend (starts after design reference is received)
 | ID | Goal | Depends | Status |
 |---|---|---|---|
-| T-050 | Design tokens + component kit from `design.md` (+ reference analysis) | design reference | TODO |
-| T-051 | App shell, routing, API client, WS hook | T-036, T-037 | TODO |
+| T-050 | Design tokens + component kit from `design.md` (+ reference analysis) | design reference | DONE |
+| T-051 | App shell, routing, API client, WS hook | T-036, T-037 | DONE |
 | T-052 | Fleet dashboard | T-051 | TODO |
 | T-053 | Machine detail + live monitoring | T-051 | TODO |
 | T-054 | Digital Twin view (SVG schematic) | T-053 | TODO |
@@ -194,6 +194,24 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | T-056 | Alerts + maintenance workflow + feedback | T-055 | TODO |
 | T-057 | History and analytics | T-053 | TODO |
 | T-058 | Model / MLOps page + scenario control | T-060 | TODO |
+
+### T-050 Design Tokens & Component Kit
+- **Goal:** Synthesize design references (Browser Use, Deepgram, LaunchDarkly) into an original, dark-first industrial AI control room design system and reusable component kit.
+- **Files:** `dashboard/src/index.css`, `dashboard/src/components/common/Button.tsx`, `IconButton.tsx`, `Card.tsx`, `StatusBadge.tsx`, `HealthBadge.tsx`, `Metric.tsx`, `MetricGrid.tsx`, `DataTable.tsx`, `Input.tsx`, `Select.tsx`, `Modal.tsx`, `Toast.tsx`, `LoadingState.tsx`, `EmptyState.tsx`, `ErrorState.tsx`, `ConnectionIndicator.tsx`, `LiveIndicator.tsx`, `RoleGate.tsx`.
+- **Depends:** Design references (Browser Use, Deepgram, LaunchDarkly), `design.md`.
+- **Implementation:** Defined comprehensive design tokens (canvas `#0B0B0C`, surfaces `#101014` / `#18181B`, cyan accent `#149AFB`, operational green `#13EF95`, warning orange `#FE750E`, danger red `#EF4444`, slate maintenance `#8C9AC4`). Enforced sharp action controls (4px radius) vs rounded content cards (8-16px) tension. Implemented non-color-only status badges with geometric shapes (●, ▲, ■, ◆, ○) and accessible text labels. Built 17 reusable UI components.
+- **Acceptance:** Component kit unit tests pass; all tokens contrast-checked; zero generic templates; responsive and accessible.
+- **Tests:** `dashboard/tests/components.test.tsx` (9 tests), `dashboard/tests/rbac.test.ts` (7 tests).
+- **Status:** DONE
+
+### T-051 App Shell, Routing, Typed API Client & WebSocket Live Stream
+- **Goal:** Implement persistent industrial application shell, routing, authentication state, RBAC utilities, typed API client with RFC 7807 error parsing, and live twin WebSocket client.
+- **Files:** `dashboard/src/components/layout/AppShell.tsx`, `Sidebar.tsx`, `TopHeader.tsx`, `PageHeader.tsx`, `dashboard/src/api/client.ts`, `dashboard/src/api/websocket.ts`, `dashboard/src/context/AuthContext.tsx`, `dashboard/src/hooks/useAuth.ts`, `dashboard/src/hooks/useTwinWebSocket.ts`, `dashboard/src/utils/rbac.ts`, `dashboard/src/App.tsx`, `dashboard/src/pages/*.tsx`.
+- **Depends:** T-036, T-037.
+- **Implementation:** Created persistent navigation shell with responsive drawer. Implemented `AuthProvider` with token persistence, profile fetching, auto-logout on 401, and `ProtectedRoute`. Built typed API client handling RFC 7807 problem details across all status codes. Developed auto-reconnecting `TwinWebSocketClient` with keepalive ping/pong frames. Implemented route shells for all primary platform views (`/dashboard`, `/machines`, `/alerts`, `/maintenance`, `/scenarios`, `/mlops`, `/settings`, `/login`, `*`). Enforced data honesty with truthful empty states when backend has no active telemetry.
+- **Acceptance:** Full auth lifecycle tested; protected routes redirect cleanly; API client parses RFC 7807; WebSocket manages connection states; Vitest suite and Vite production build pass.
+- **Tests:** `dashboard/tests/auth.test.tsx` (4 tests), `dashboard/tests/apiClient.test.ts` (4 tests), `dashboard/tests/websocket.test.ts` (3 tests).
+- **Status:** DONE
 
 ## PHASE 6 — MLOps
 | ID | Goal | Depends | Status |
