@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Compiled topic regex — same pattern as used in virtual_edge and contract
 _TOPIC_REGEX = re.compile(r"^edgetwin/v[0-9]+/([A-Z]{3}-[0-9]{4})/telemetry$")
+_STATUS_TOPIC_REGEX = re.compile(r"^edgetwin/v[0-9]+/([A-Z]{3}-[0-9]{4})/status$")
 
 # Singleton validator (thread-safe: read-only after construction)
 _validator: TelemetryValidator | None = None
@@ -67,7 +68,7 @@ def handle_message(
     Returns
     -------
     dict with keys:
-        - "outcome": "persisted" | "duplicate" | "rejected"
+        - "outcome": "persisted" | "duplicate" | "rejected" | "status_updated"
         - "reason":  human-readable string
         - "machine_id": str | None
         - "seq": int | None
@@ -76,6 +77,61 @@ def handle_message(
     seq: int | None = None
 
     try:
+        # Step 0: Check for canonical status / LWT topic
+        status_match = _STATUS_TOPIC_REGEX.match(topic)
+        if status_match is not None:
+            machine_id = status_match.group(1)
+            try:
+                text = raw_payload.decode("utf-8")
+                payload_dict = json.loads(text)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                logger.warning(
+                    "Dropping status message: invalid JSON",
+                    extra={"machine_id": machine_id, "error": str(exc), "event": "invalid_json"},
+                )
+                return _rejected("invalid_json", str(exc), machine_id, None)
+
+            status_str = payload_dict.get("status") if isinstance(payload_dict, dict) else None
+            if not isinstance(status_str, str):
+                return _rejected(
+                    "invalid_status_payload", "Missing or non-string status", machine_id, None
+                )
+
+            status_upper = status_str.upper()
+            if status_upper == "OFFLINE":
+                try:
+                    from api.app.twin.service import get_twin_service
+                    from api.app.twin.snapshot import persist_twin_snapshot
+
+                    twin_svc = get_twin_service()
+                    new_state = twin_svc.mark_offline(machine_id)
+                    persist_twin_snapshot(db, new_state)
+                    logger.info(
+                        "Machine marked OFFLINE via MQTT LWT/status",
+                        extra={"machine_id": machine_id, "event": "machine_marked_offline"},
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.error(
+                        "Failed to update twin for OFFLINE status",
+                        extra={
+                            "machine_id": machine_id,
+                            "error": str(exc),
+                            "event": "status_twin_failed",
+                        },
+                    )
+            elif status_upper == "ONLINE":
+                logger.info(
+                    "Machine reported ONLINE via MQTT status",
+                    extra={"machine_id": machine_id, "event": "machine_reported_online"},
+                )
+
+            return {
+                "outcome": "status_updated",
+                "reason": f"Machine {machine_id} status updated to {status_upper}",
+                "machine_id": machine_id,
+                "seq": None,
+            }
+
         # Step 1: Validate topic shape
         machine_id = extract_machine_id_from_topic(topic)
         if machine_id is None:

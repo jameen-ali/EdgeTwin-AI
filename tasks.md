@@ -154,7 +154,7 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 |---|---|---|---|---|
 | T-040 | **Feasibility spike:** Determine technically viable Wokwi connectivity path (Path A vs Path B) and ESP32 library/sensor feasibility | T-023 | Path A selected (zero recurring cost); library constraints analyzed; decision documented in memory.md | DONE |
 | T-041 | Firmware v1: DHT22 + NTC + MPU6050 + slide pot + process model → contract v1 | T-040, T-021 | valid telemetry at 1 Hz; modular C++ edge architecture; diagram.json; contract tests pass | DONE |
-| T-042 | Firmware v2: validation, ΔT/VA/RMS, safety trips + LED, ring buffer, LWT, `cmd` subscribe | T-041 | trip fires with backend down; buffered messages flush on reconnect | TODO |
+| T-042 | Firmware v2: validation, ΔT/VA/RMS, safety trips + LED, ring buffer, LWT, `cmd` subscribe | T-041 | trip fires with backend down; buffered messages flush on reconnect; command validation; status/LWT | DONE |
 | T-043 | Wokwi ↔ backend integration checklist (manual) + optional Wokwi CI scenario if a token/plan allows | T-042, T-032 | documented repeatable procedure | TODO |
 | T-044 | *(stretch)* shallow-tree edge screening, disagreement metric | T-016, T-042 | tree ≤ 4 KB; agreement with cloud reported | TODO |
 

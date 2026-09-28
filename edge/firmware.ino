@@ -15,6 +15,7 @@
 #include "process_model.h"
 #include "telemetry.h"
 #include "ring_buffer.h"
+#include "command.h"
 
 // Networking objects
 static WiFiClient netClient;
@@ -58,24 +59,32 @@ void onMessageReceived(String &topic, String &payload) {
     Serial.print(F("]: "));
     Serial.println(payload);
 
-    // Simple command handling for remote scenario/mode injection
-    if (payload.indexOf("STOP") >= 0) {
-        processModel.stop();
-    } else if (payload.indexOf("START") >= 0) {
-        processModel.start();
-    } else if (payload.indexOf("RESET") >= 0) {
-        processModel.reset();
-    } else if (payload.indexOf("TRIP_OVERLOAD") >= 0) {
-        processModel.triggerTrip("TRIP_OVERLOAD");
+    CommandResult res = EdgeCommandProcessor::process(
+        payload.c_str(),
+        processModel,
+        MACHINE_ID
+    );
+
+    if (res.code == CMD_OK) {
+        Serial.print(F("[COMMAND] Success: "));
+        Serial.println(res.message);
+    } else {
+        Serial.print(F("[COMMAND] Rejected (code "));
+        Serial.print((int)res.code);
+        Serial.print(F("): "));
+        Serial.println(res.message);
     }
 }
 
 void flushBufferedTelemetry() {
     char bufferedMsg[MAX_PAYLOAD_SIZE];
-    while (!ringBuffer.isEmpty() && mqttClient.connected()) {
+    int flushCount = 0;
+    const int MAX_FLUSH_PER_TICK = 10; // Bounded flush to protect safety loop execution
+    while (!ringBuffer.isEmpty() && mqttClient.connected() && flushCount < MAX_FLUSH_PER_TICK) {
         if (ringBuffer.peek(bufferedMsg, sizeof(bufferedMsg))) {
             if (mqttClient.publish(topicTelemetry, bufferedMsg, false, 1)) {
                 ringBuffer.dropFront();
+                flushCount++;
             } else {
                 break; // Publish failed, retry next cycle
             }

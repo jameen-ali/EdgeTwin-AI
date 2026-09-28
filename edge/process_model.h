@@ -40,6 +40,10 @@ public:
     void triggerTrip(const char* trip_code);
     void update(const SensorReadings& sensors, float dt_seconds);
     const ProcessState& getState() const { return state_; }
+    MachineState getMachineState() const { return state_.state; }
+    bool isTripped() const { return state_.state == STATE_TRIPPED; }
+    bool isConditionSafe() const;
+    void injectScenario(const char* scenario_id);
 
 private:
     ProcessState state_;

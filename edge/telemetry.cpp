@@ -1,5 +1,9 @@
 #include "telemetry.h"
-#include "config.h"
+#if __has_include("config.h")
+  #include "config.h"
+#else
+  #include "config.h.example"
+#endif
 #include <stdio.h>
 
 TelemetryFormatter::TelemetryFormatter() : seq_(0) {}

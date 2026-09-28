@@ -27,8 +27,9 @@ from api.app.ingest.handler import handle_message
 
 logger = logging.getLogger(__name__)
 
-# Canonical wildcard subscription for all machine telemetry
+# Canonical wildcard subscription for all machine telemetry and status/LWT
 TELEMETRY_TOPIC = "edgetwin/v1/+/telemetry"
+STATUS_TOPIC = "edgetwin/v1/+/status"
 
 
 class MQTTIngestionClient:
@@ -220,9 +221,13 @@ class MQTTIngestionClient:
         return client
 
     def _subscribe(self, client: mqtt.Client) -> None:
-        """Subscribe to the canonical telemetry wildcard topic."""
-        client.subscribe(TELEMETRY_TOPIC, qos=1)
+        """Subscribe to canonical telemetry and status wildcard topics."""
+        client.subscribe([(TELEMETRY_TOPIC, 1), (STATUS_TOPIC, 1)])
         logger.info(
-            "MQTT subscription requested",
-            extra={"topic": TELEMETRY_TOPIC, "event": "mqtt_subscribe_requested"},
+            "MQTT subscriptions requested",
+            extra={
+                "telemetry_topic": TELEMETRY_TOPIC,
+                "status_topic": STATUS_TOPIC,
+                "event": "mqtt_subscribe_requested",
+            },
         )

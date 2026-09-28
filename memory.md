@@ -7,6 +7,7 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 ---
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-041, T-042]** S16 — ESP32 Firmware v1/v2 Integration & Verification completed. Branch `feat/T-041-T-042-firmware-v1-v2`. Integrated ESP32 firmware with DHT22, potentiometer, MPU6050, and trip indicator LED. Coupled process equations with 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Enforced 4 deterministic safety trips (DeltaT > 45 C, Current > 45 A, Vibration > 15 mm/s, sustained overload >= 32 A for 10 s). Tripped state de-energizes machine (RPM=0, Torque=0, Current=0, LED=ON, trip latched). Bounded 50-message FIFO ring buffer handles offline queuing and flushes on reconnect without blocking safety loop. Implemented structured command processor (`edge/command.cpp`) rejecting malformed JSON, code injection, and trip bypass. Configured QoS 1 publishing and retained LWT on `edgetwin/v1/{machine_id}/status`, integrated with Digital Twin `mark_offline`. Verified with 13 native C++ unit tests and 19 pytest contract/integration tests. 575 passed, 1 skipped.
 - **[T-001]** Repository scaffolded: `pyproject.toml`, `requirements.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.env.example`, `gemini.md`, `.agents/rules/engineering.md`, and skeleton directories. Notebooks safely moved to `notebooks/`. Verification passed.
 - **[T-003]** Reproducible data preparation pipeline implemented and verified. Branch `feat/T-003-data-preparation`. All 38 tests pass. ruff/black clean.
 - **[T-010]** DVC versioning initialized. `dvc repro` works. `dvc status` clean after reproduction. Branch `feat/T-010-T-011-data-contract`. 90 tests pass.
@@ -29,7 +30,66 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 
 ---
 
-## S10 — T-030 FastAPI Skeleton & T-031 Database Schema (2026-09-28)
+## S16 — T-041 & T-042 ESP32 Firmware Integration & Verification (2026-09-28)
+
+### Task completion
+- **Status:** DONE (T-041 and T-042)
+- **Branch:** `feat/T-041-T-042-firmware-v1-v2`
+- **Base Commit:** `6761832` (S15 baseline: `feat(auth): add jwt authentication rbac and security hardening`)
+- **Files created:**
+  - `edge/command.h`
+  - `edge/command.cpp`
+  - `tests/edge/mock_arduino.h`
+  - `tests/edge/arduino_compat/Arduino.h`
+  - `tests/edge/test_native_edge.cpp`
+  - `tests/integration/test_firmware_backend_integration.py`
+- **Files modified:**
+  - `edge/process_model.h`
+  - `edge/process_model.cpp`
+  - `edge/ring_buffer.h`
+  - `edge/telemetry.cpp`
+  - `edge/sensors.cpp`
+  - `edge/firmware.ino`
+  - `api/app/ingest/mqtt_client.py`
+  - `api/app/ingest/handler.py`
+  - `tests/contract/test_firmware_contract.py`
+  - `tasks.md`
+  - `memory.md`
+
+### Firmware Architecture & Verification Summary [MEASURED]
+1. **Sensor Acquisition & Circuit Matching:**
+   - ESP32 DevKit v1 in `edge/diagram.json` with DHT22 (GPIO 15) for air temperature, 12-bit ADC slide potentiometer (GPIO 34) scaling [0.0, 150.0] Nm torque, MPU6050 accelerometer (I2C SDA 21, SCL 22) for vibration RMS proxy, and red trip indicator LED (GPIO 2) with 220 $\Omega$ current-limiting resistor to GND.
+2. **Coupled Process Dynamics & 5-State FSM:**
+   - 5-State Machine: `STOPPED` -> `STARTING` -> `RUNNING` -> `DEGRADING` -> `TRIPPED`.
+   - Physics coupling: Inrush current spike (~26.4 A) during ramp up; torque-coupled electrical current ($I \approx 12.0 \cdot \tau / 40.1$); load droop speed curve; thermal equilibrium differential accumulation; tool wear accumulation ($0.1 \times \text{load\_mult}$ min/s); runtime operating hours.
+3. **Deterministic Safety Trips & Interlock Latching:**
+   - Enforced 4 safety trip thresholds:
+     1. $\Delta T = T_{\text{process}} - T_{\text{air}} > 45.0\,^\circ\text{C}$ $\to$ `TRIP_THERMAL`
+     2. $\text{Current} > 45.0\text{ A}$ $\to$ `TRIP_OVERCURRENT`
+     3. $\text{Vibration} > 15.0\text{ mm/s}$ $\to$ `TRIP_VIBRATION`
+     4. $\text{Current} \ge 32.0\text{ A}$ continuously for $\ge 10.0\text{ s}$ (`OVERLOAD_TRIP_DELAY_MS` = 10000) $\to$ `TRIP_OVERLOAD`
+   - When tripped: State becomes `STATE_TRIPPED`, $\text{RPM} = 0$, $\tau = 0$, $I = 0$, LED pin 2 turns HIGH, and `edge.trip` holds the trip code.
+   - Command bypass prevention: `start()` and remote `START` commands are blocked when tripped. `reset()` is blocked while physical hazardous conditions persist.
+4. **Resilience & Bounded FIFO Ring Buffer:**
+   - Local circular buffer with capacity 50 (`MAX_PAYLOAD_SIZE` 600 bytes, ~30 KB static SRAM).
+   - Drop-oldest policy when full ensures bounded memory usage with zero heap fragmentation.
+   - Non-blocking flush on reconnect limited to 10 messages per tick to prevent starving or blocking the 1 Hz safety loop.
+5. **Structured Command Validation & Injection Guard:**
+   - Command topic: `edgetwin/v1/{machine_id}/cmd` (QoS 1).
+   - Validates JSON format, requires `"command"`/`"cmd"`, validates matching `machine_id`.
+   - Strict rejection of dangerous code injection keywords (`eval`, `exec`, `system`, `os`, `subprocess`, `sh`, `bash`, `python`, `__`).
+   - Supported commands: `STOP`, `START` (guard-protected), `RESET` (hazard-protected), `SCENARIO` / `INJECT_FAULT` (SCN-01 to SCN-08 canonical scenarios).
+6. **LWT and Status Integration:**
+   - Canonical status topic: `edgetwin/v1/{machine_id}/status` (QoS 1, retained).
+   - Connect sets LWT `{"status": "OFFLINE"}`. On connect, publishes `{"status": "ONLINE"}`. Clean disconnect publishes `{"status": "OFFLINE"}`.
+   - Backend MQTT client subscribes to `edgetwin/v1/+/status`. Ingestion handler dispatches `OFFLINE` status to Digital Twin service `mark_offline(machine_id)` and records `TwinSnapshotRecord`.
+7. **Automated Testing Suite:**
+   - 13 native C++ firmware unit tests compiled with `g++ -std=c++17` in `tests/edge/test_native_edge.cpp` (all PASSED).
+   - 16 contract tests in `tests/contract/test_firmware_contract.py` verifying schema, hardware mapping, trips, commands, buffer, LWT, and invoking native compilation.
+   - 4 end-to-end integration tests in `tests/integration/test_firmware_backend_integration.py` verifying nominal telemetry, tripped telemetry, LWT OFFLINE transition, and ONLINE logging through the entire database, ML inference, health engine, and Digital Twin stack.
+   - Total test suite: 575 passed, 1 skipped. Ruff and Black 100% clean. Zero test set leakage.
+
+---
 
 ### Task completion
 - **Status:** DONE (T-030 and T-031)

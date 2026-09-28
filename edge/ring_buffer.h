@@ -2,7 +2,11 @@
 #define RING_BUFFER_H
 
 #include <Arduino.h>
-#include "config.h"
+#if __has_include("config.h")
+  #include "config.h"
+#else
+  #include "config.h.example"
+#endif
 
 #define MAX_PAYLOAD_SIZE 600
 

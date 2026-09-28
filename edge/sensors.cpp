@@ -1,5 +1,9 @@
 #include "sensors.h"
-#include "config.h"
+#if __has_include("config.h")
+  #include "config.h"
+#else
+  #include "config.h.example"
+#endif
 #include <DHTesp.h>
 #include <Wire.h>
 #include <Adafruit_MPU6050.h>

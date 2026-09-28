@@ -1,5 +1,9 @@
 #include "process_model.h"
-#include "config.h"
+#if __has_include("config.h")
+  #include "config.h"
+#else
+  #include "config.h.example"
+#endif
 #include <math.h>
 
 EdgeProcessModel::EdgeProcessModel() {
@@ -7,6 +11,10 @@ EdgeProcessModel::EdgeProcessModel() {
 }
 
 void EdgeProcessModel::reset() {
+    if (state_.state == STATE_TRIPPED && !isConditionSafe()) {
+        // Condition still unsafe; cannot reset
+        return;
+    }
     state_.state = STATE_RUNNING; // Default to RUNNING on boot
     state_.air_temp_c = 25.4f;
     state_.process_temp_c = 35.3f;
@@ -28,10 +36,48 @@ void EdgeProcessModel::reset() {
 }
 
 void EdgeProcessModel::start() {
-    if (state_.state == STATE_STOPPED) {
+    if (state_.state == STATE_STOPPED && !isTripped()) {
         state_.state = STATE_STARTING;
         state_.active_trip = nullptr;
         digitalWrite(PIN_LED_TRIP, LOW);
+    }
+}
+
+bool EdgeProcessModel::isConditionSafe() const {
+    float delta_t = state_.process_temp_c - state_.air_temp_c;
+    if (delta_t > 45.0f) return false;
+    if (state_.current_a > 45.0f) return false;
+    if (state_.vibration_mm_s > 15.0f) return false;
+    return true;
+}
+
+void EdgeProcessModel::injectScenario(const char* scenario_id) {
+    if (!scenario_id) return;
+
+    if (strcmp(scenario_id, "SCN-04") == 0 || strcmp(scenario_id, "TRIP_OVERLOAD") == 0) {
+        triggerTrip("TRIP_OVERLOAD");
+    } else if (strcmp(scenario_id, "TRIP_THERMAL") == 0) {
+        state_.process_temp_c = state_.air_temp_c + 46.0f;
+        triggerTrip("TRIP_THERMAL");
+    } else if (strcmp(scenario_id, "TRIP_OVERCURRENT") == 0) {
+        state_.current_a = 46.0f;
+        triggerTrip("TRIP_OVERCURRENT");
+    } else if (strcmp(scenario_id, "TRIP_VIBRATION") == 0) {
+        state_.vibration_mm_s = 16.0f;
+        triggerTrip("TRIP_VIBRATION");
+    } else if (strcmp(scenario_id, "SCN-02") == 0) {
+        state_.state = STATE_DEGRADING;
+        state_.process_temp_c += 15.0f;
+    } else if (strcmp(scenario_id, "SCN-03") == 0) {
+        state_.state = STATE_DEGRADING;
+        state_.torque_nm = 55.0f;
+    } else if (strcmp(scenario_id, "SCN-05") == 0) {
+        state_.tool_wear_min = 245.0f;
+    } else if (strcmp(scenario_id, "SCN-06") == 0) {
+        state_.state = STATE_DEGRADING;
+        state_.vibration_mm_s = 8.5f;
+    } else if (strcmp(scenario_id, "SCN-01") == 0) {
+        reset();
     }
 }
 
