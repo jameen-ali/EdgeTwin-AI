@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.app.config import get_settings
+from api.app.ingest.mqtt_client import MQTTIngestionClient
 from api.app.logging import get_logger, setup_logging
 from api.app.routes.health import router as health_router
 from api.app.schemas.common import ProblemDetails
@@ -18,16 +19,43 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan management for initialization and graceful shutdown."""
+    """Application lifespan management for initialization and graceful shutdown.
+
+    Startup:
+    - Configure structured logging.
+    - Start the MQTT ingestion client (background paho thread).
+
+    Shutdown:
+    - Disconnect MQTT client gracefully before process exits.
+    """
     setup_logging()
     settings = get_settings()
     logger.info(
         f"Starting {settings.PROJECT_NAME} (v{settings.VERSION}) in [{settings.ENVIRONMENT}] mode"
     )
 
+    # Start MQTT ingestion client (T-032)
+    mqtt_client = MQTTIngestionClient(settings=settings)
+    app.state.mqtt_client = mqtt_client
+    try:
+        mqtt_client.start()
+        logger.info("MQTT ingestion client started")
+    except Exception as exc:  # noqa: BLE001
+        # If the broker is unavailable at startup, log but do NOT block the API.
+        # paho will continue retrying in the background thread.
+        logger.warning(
+            f"MQTT ingestion client failed to initiate connection: {exc}; "
+            "will retry automatically"
+        )
+
     yield
 
+    # Graceful shutdown
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
+    try:
+        mqtt_client.stop()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"Error stopping MQTT client during shutdown: {exc}")
 
 
 def create_app() -> FastAPI:

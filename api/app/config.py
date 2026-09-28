@@ -38,12 +38,15 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
-    # MQTT Broker Configuration (for future ingest service T-032)
+    # MQTT Broker Configuration (T-032 MQTT Ingestion Service)
     MQTT_HOST: str = "localhost"
     MQTT_PORT: int = 1883
     MQTT_USERNAME: str | None = None
     MQTT_PASSWORD: str | None = None
     MQTT_TLS: bool = False
+    MQTT_CLIENT_ID: str = "edgetwin-ingest"
+    MQTT_RECONNECT_MIN_DELAY: int = 1
+    MQTT_RECONNECT_MAX_DELAY: int = 30
 
     # MLflow tracking
     MLFLOW_TRACKING_URI: str = "sqlite:///mlflow.db"
