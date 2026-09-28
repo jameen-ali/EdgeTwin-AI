@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,7 +13,9 @@ from fastapi.responses import JSONResponse
 from api.app.config import get_settings
 from api.app.ingest.mqtt_client import MQTTIngestionClient
 from api.app.logging import get_logger, setup_logging
+from api.app.routes.alerts import router as alerts_router
 from api.app.routes.health import router as health_router
+from api.app.routes.machines import router as machines_router
 from api.app.schemas.common import ProblemDetails
 from api.app.ws.broadcaster import get_connection_manager
 from api.app.ws.router import router as ws_router
@@ -115,7 +118,7 @@ def create_app() -> FastAPI:
             status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="One or more request parameters or payload fields failed validation.",
             instance=str(request.url.path),
-            errors=exc.errors(),
+            errors=jsonable_encoder(exc.errors()),
         )
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -165,6 +168,9 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     # API v1 prefix probes
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
+    # REST API v1 routes (T-036)
+    app.include_router(machines_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(alerts_router, prefix=settings.API_V1_PREFIX)
     # WebSocket live stream (T-037) — /ws/live and /ws/live/{machine_id}
     app.include_router(ws_router)
 
