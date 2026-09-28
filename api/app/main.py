@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -13,6 +14,8 @@ from api.app.ingest.mqtt_client import MQTTIngestionClient
 from api.app.logging import get_logger, setup_logging
 from api.app.routes.health import router as health_router
 from api.app.schemas.common import ProblemDetails
+from api.app.ws.broadcaster import get_connection_manager
+from api.app.ws.router import router as ws_router
 
 logger = get_logger(__name__)
 
@@ -23,9 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     Startup:
     - Configure structured logging.
+    - Register WebSocket broadcast callback with TwinService (T-037).
     - Start the MQTT ingestion client (background paho thread).
 
     Shutdown:
+    - Unregister WS callback.
     - Disconnect MQTT client gracefully before process exits.
     """
     setup_logging()
@@ -33,6 +38,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(
         f"Starting {settings.PROJECT_NAME} (v{settings.VERSION}) in [{settings.ENVIRONMENT}] mode"
     )
+
+    # Register the WebSocket broadcaster as a TwinService callback so every
+    # twin state update fires a broadcast to connected clients (T-037).
+    manager = get_connection_manager()
+    app.state.ws_manager = manager
+
+    from api.app.twin.service import get_twin_service
+
+    twin_svc = get_twin_service()
+    app.state.twin_service = twin_svc
+
+    async def _ws_broadcast_callback(machine_id: str, state_dict: dict[str, Any]) -> None:
+        await manager.broadcast_twin_update(machine_id, state_dict)
+
+    twin_svc.register_ws_callback(_ws_broadcast_callback)
 
     # Start MQTT ingestion client (T-032)
     mqtt_client = MQTTIngestionClient(settings=settings)
@@ -44,14 +64,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # If the broker is unavailable at startup, log but do NOT block the API.
         # paho will continue retrying in the background thread.
         logger.warning(
-            f"MQTT ingestion client failed to initiate connection: {exc}; "
-            "will retry automatically"
+            f"MQTT ingestion client failed to initiate connection: {exc}; will retry automatically"
         )
 
     yield
 
     # Graceful shutdown
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
+    twin_svc.unregister_ws_callback(_ws_broadcast_callback)
     try:
         mqtt_client.stop()
     except Exception as exc:  # noqa: BLE001
@@ -145,6 +165,8 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     # API v1 prefix probes
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
+    # WebSocket live stream (T-037) — /ws/live and /ws/live/{machine_id}
+    app.include_router(ws_router)
 
     return app
 

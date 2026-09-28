@@ -160,7 +160,7 @@ def handle_message(
                 telem_id = db.execute(stmt).scalar_one_or_none()
 
                 inference_svc = get_inference_service()
-                inference_svc.process_and_persist(
+                inf_result, _pred_rec, _alert_rec = inference_svc.process_and_persist(
                     db=db,
                     payload=payload_dict,
                     telemetry_id=telem_id,
@@ -176,6 +176,39 @@ def handle_message(
                         "event": "inference_failed",
                     },
                 )
+                inf_result = None
+
+            # Step 8: Update Digital Twin state and persist snapshot (error-isolated)
+            if inf_result is not None:
+                try:
+                    from api.app.twin.service import get_twin_service
+                    from api.app.twin.snapshot import persist_twin_snapshot
+
+                    twin_svc = get_twin_service()
+                    new_state = twin_svc.update_from_inference(
+                        payload=payload_dict,
+                        inference_result=inf_result,
+                    )
+                    persist_twin_snapshot(db, new_state)
+                    logger.debug(
+                        "Twin state updated",
+                        extra={
+                            "machine_id": machine_id,
+                            "sync_status": new_state.sync_status,
+                            "health_state": new_state.health_state,
+                            "event": "twin_updated",
+                        },
+                    )
+                except Exception as twin_exc:  # noqa: BLE001
+                    logger.error(
+                        "Twin update failed for persisted telemetry",
+                        extra={
+                            "machine_id": machine_id,
+                            "seq": seq,
+                            "error": str(twin_exc),
+                            "event": "twin_update_failed",
+                        },
+                    )
 
             return {
                 "outcome": "persisted",
