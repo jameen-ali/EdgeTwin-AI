@@ -187,7 +187,7 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 |---|---|---|---|
 | T-050 | Design tokens + component kit from `design.md` (+ reference analysis) | design reference | DONE |
 | T-051 | App shell, routing, API client, WS hook | T-036, T-037 | DONE |
-| T-052 | Fleet dashboard | T-051 | TODO |
+| T-052 | Fleet dashboard | T-051 | DONE |
 | T-053 | Machine detail + live monitoring | T-051 | TODO |
 | T-054 | Digital Twin view (SVG schematic) | T-053 | TODO |
 | T-055 | Predictions + explanations panel | T-053 | TODO |
@@ -211,6 +211,15 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Implementation:** Created persistent navigation shell with responsive drawer. Implemented `AuthProvider` with token persistence, profile fetching, auto-logout on 401, and `ProtectedRoute`. Built typed API client handling RFC 7807 problem details across all status codes. Developed auto-reconnecting `TwinWebSocketClient` with keepalive ping/pong frames. Implemented route shells for all primary platform views (`/dashboard`, `/machines`, `/alerts`, `/maintenance`, `/scenarios`, `/mlops`, `/settings`, `/login`, `*`). Enforced data honesty with truthful empty states when backend has no active telemetry.
 - **Acceptance:** Full auth lifecycle tested; protected routes redirect cleanly; API client parses RFC 7807; WebSocket manages connection states; Vitest suite and Vite production build pass.
 - **Tests:** `dashboard/tests/auth.test.tsx` (4 tests), `dashboard/tests/apiClient.test.ts` (4 tests), `dashboard/tests/websocket.test.ts` (3 tests).
+- **Status:** DONE
+
+### T-052 Fleet Dashboard
+- **Goal:** Production-grade operational fleet overview integrating real backend REST APIs, live twin WebSocket streaming (1 Hz), operational KPI cards, status filtering, multi-field search, risk-based sorting, high-density table and card views, active incident triage ticker with RBAC acknowledgment, and truthful empty states.
+- **Files:** `dashboard/src/pages/DashboardPage.tsx`, `dashboard/src/api/client.ts`, `dashboard/src/types/machine.ts`, `dashboard/src/types/alert.ts`, `dashboard/src/utils/formatters.ts`, `dashboard/src/components/common/HealthBadge.tsx`, `dashboard/src/components/common/StatusBadge.tsx`, `dashboard/tests/dashboard.test.tsx`.
+- **Depends:** T-051.
+- **Implementation:** Built fleet overview landing page (`/dashboard`). Integrated `useTwinWebSocket` passing JWT authentication token, merging real-time twin state changes (health scores, failure probabilities, operating/connectivity states, timestamps) reactively into the machine fleet. Implemented 4 operational KPI metrics (Total Machines, Active Running, Fleet Health, Active Alarms) with status lines and contextual deltas. Provided 5 status filter tabs (All, Attention Needed, Healthy, Tripped, Offline), real-time search (by Machine ID, Type, Location), and sort controls (Risk, Health Index, ID). Added dual-view toggle between high-density technical `DataTable` and responsive visual asset cards with mini health meters and calibrated risk highlights ($t^* = 0.16$). Integrated active alert incident triage panel with role-gated acknowledgment (`RoleGate` + `api.alerts.acknowledge`) and floating feedback toasts. Harmonized client list API responses to handle both flat arrays and `{ items, total }` paginated envelopes. Enforced truthful empty and error states.
+- **Acceptance:** Full fleet lifecycle tested; live WebSocket twin updates merge at 1 Hz; table and card view toggles functional; active incident acknowledgment verified; Vitest suite (37 passed across 6 test suites) and Vite production build pass cleanly.
+- **Tests:** `dashboard/tests/dashboard.test.tsx` (10 tests).
 - **Status:** DONE
 
 ## PHASE 6 — MLOps

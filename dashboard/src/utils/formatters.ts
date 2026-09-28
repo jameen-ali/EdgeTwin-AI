@@ -63,3 +63,25 @@ export function formatDateTime(
     return fallback;
   }
 }
+
+export function formatTimeAgo(
+  isoString: string | null | undefined,
+  fallback: string = "—"
+): string {
+  if (!isoString) return fallback;
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return fallback;
+    const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diffSec < 5) return "just now";
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  } catch {
+    return fallback;
+  }
+}

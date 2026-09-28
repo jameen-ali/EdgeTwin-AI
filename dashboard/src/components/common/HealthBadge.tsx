@@ -29,7 +29,7 @@ export const HealthBadge: React.FC<HealthBadgeProps> = ({ state, size = "md" }) 
     color = "var(--color-danger)";
     border = "var(--color-danger-border)";
     shapeSymbol = "■"; // Square
-  } else if (norm === "MAINTENANCE REQUIRED" || norm === "MAINTENANCE") {
+  } else if (norm === "MAINTENANCE REQUIRED" || norm === "MAINTENANCE_REQUIRED" || norm === "MAINTENANCE") {
     bg = "var(--color-maintenance-subtle)";
     color = "var(--color-maintenance)";
     border = "var(--color-maintenance-border)";

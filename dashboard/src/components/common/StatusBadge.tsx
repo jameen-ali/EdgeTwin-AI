@@ -32,7 +32,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = "md" })
     color = "var(--color-accent)";
     border = "var(--color-accent-border)";
     IconComponent = Radio;
-  } else if (norm === "STALE") {
+  } else if (norm === "STALE" || norm === "DEGRADING") {
     bg = "var(--color-warning-subtle)";
     color = "var(--color-warning)";
     border = "var(--color-warning-border)";

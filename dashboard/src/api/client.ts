@@ -4,7 +4,7 @@
 
 import { ApiError, ProblemDetails, HealthResponse } from "../types/api";
 import { AuthUser, LoginPayload, TokenResponse } from "../types/auth";
-import { MachineSummary } from "../types/machine";
+import { MachineSummary, normalizeMachine } from "../types/machine";
 import { AlertItem } from "../types/alert";
 import { ScenarioSummary } from "../types/scenario";
 
@@ -128,30 +128,50 @@ export const api = {
   },
 
   machines: {
-    list: (): Promise<MachineSummary[]> => {
-      return request<MachineSummary[]>("/machines", {
-        method: "GET",
-      });
+    list: async (params?: { limit?: number; offset?: number; status?: string }): Promise<MachineSummary[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+      if (params?.status) searchParams.append("status", params.status);
+
+      const queryStr = searchParams.toString();
+      const res = await request<MachineSummary[] | { items: MachineSummary[]; total: number }>(
+        `/machines${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res.map((m) => normalizeMachine(m));
+      if (res && typeof res === "object" && Array.isArray((res as { items?: MachineSummary[] }).items)) {
+        return (res as { items: MachineSummary[] }).items.map((m) => normalizeMachine(m));
+      }
+      return [];
     },
 
-    get: (machineId: string): Promise<MachineSummary> => {
-      return request<MachineSummary>(`/machines/${encodeURIComponent(machineId)}`, {
+    get: async (machineId: string): Promise<MachineSummary> => {
+      const res = await request<MachineSummary>(`/machines/${encodeURIComponent(machineId)}`, {
         method: "GET",
       });
+      return normalizeMachine(res);
     },
   },
 
   alerts: {
-    list: (params?: { machine_id?: string; severity?: string; active_only?: boolean }): Promise<AlertItem[]> => {
+    list: async (params?: { machine_id?: string; severity?: string; active_only?: boolean; limit?: number }): Promise<AlertItem[]> => {
       const searchParams = new URLSearchParams();
       if (params?.machine_id) searchParams.append("machine_id", params.machine_id);
       if (params?.severity) searchParams.append("severity", params.severity);
       if (params?.active_only !== undefined) searchParams.append("active_only", String(params.active_only));
+      if (params?.limit) searchParams.append("limit", String(params.limit));
 
       const queryStr = searchParams.toString();
-      return request<AlertItem[]>(`/alerts${queryStr ? `?${queryStr}` : ""}`, {
-        method: "GET",
-      });
+      const res = await request<AlertItem[] | { items: AlertItem[]; total: number }>(
+        `/alerts${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: AlertItem[] }).items)) {
+        return (res as { items: AlertItem[] }).items;
+      }
+      return [];
     },
 
     acknowledge: (alertId: number): Promise<{ message: string }> => {
@@ -162,10 +182,15 @@ export const api = {
   },
 
   scenarios: {
-    list: (): Promise<ScenarioSummary[]> => {
-      return request<ScenarioSummary[]>("/scenarios", {
+    list: async (): Promise<ScenarioSummary[]> => {
+      const res = await request<ScenarioSummary[] | { items: ScenarioSummary[]; total: number }>("/scenarios", {
         method: "GET",
       });
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: ScenarioSummary[] }).items)) {
+        return (res as { items: ScenarioSummary[] }).items;
+      }
+      return [];
     },
   },
 
