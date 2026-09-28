@@ -141,6 +141,42 @@ def handle_message(
         persisted, reason = persist_telemetry(db, fields)
 
         if persisted:
+            # Step 7: Run ML inference and health engine (error-isolated)
+            try:
+                from sqlalchemy import select
+
+                from api.app.inference import get_inference_service
+                from api.app.models.telemetry import TelemetryRecord
+
+                # Retrieve the persisted telemetry record ID for foreign key lineage
+                stmt = (
+                    select(TelemetryRecord.id)
+                    .where(
+                        TelemetryRecord.machine_id == machine_id,
+                        TelemetryRecord.seq == seq,
+                    )
+                    .limit(1)
+                )
+                telem_id = db.execute(stmt).scalar_one_or_none()
+
+                inference_svc = get_inference_service()
+                inference_svc.process_and_persist(
+                    db=db,
+                    payload=payload_dict,
+                    telemetry_id=telem_id,
+                )
+            except Exception as inf_exc:  # noqa: BLE001
+                # Inference failure must never crash or drop persisted telemetry
+                logger.error(
+                    "Inference processing failed for persisted telemetry",
+                    extra={
+                        "machine_id": machine_id,
+                        "seq": seq,
+                        "error": str(inf_exc),
+                        "event": "inference_failed",
+                    },
+                )
+
             return {
                 "outcome": "persisted",
                 "reason": reason,
