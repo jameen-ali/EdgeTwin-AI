@@ -38,6 +38,11 @@ import {
   ModelRegistry,
   AuditLog,
 } from "../types/mlops";
+import {
+  HistoryWindow,
+  MachineHistoryResponse,
+  FleetHistoryResponse,
+} from "../types/history";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
@@ -533,6 +538,47 @@ export const api = {
       return request<HealthResponse>("/health", {
         method: "GET",
       });
+    },
+  },
+
+  history: {
+    getMachineHistory: (
+      machineId: string,
+      params?: {
+        window?: HistoryWindow;
+        before?: string;
+        after?: string;
+        max_points?: number;
+      }
+    ): Promise<MachineHistoryResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.window) searchParams.append("window", params.window);
+      if (params?.before) searchParams.append("before", params.before);
+      if (params?.after) searchParams.append("after", params.after);
+      if (params?.max_points) searchParams.append("max_points", String(params.max_points));
+      const queryStr = searchParams.toString();
+      return request<MachineHistoryResponse>(
+        `/history/machines/${encodeURIComponent(machineId)}${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+    },
+
+    getFleetHistory: (
+      params?: {
+        window?: HistoryWindow;
+        before?: string;
+        after?: string;
+      }
+    ): Promise<FleetHistoryResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.window) searchParams.append("window", params.window);
+      if (params?.before) searchParams.append("before", params.before);
+      if (params?.after) searchParams.append("after", params.after);
+      const queryStr = searchParams.toString();
+      return request<FleetHistoryResponse>(
+        `/history/fleet${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
     },
   },
 };

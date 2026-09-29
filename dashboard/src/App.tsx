@@ -10,6 +10,7 @@ import { AlertsPage } from "./pages/AlertsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { ScenariosPage } from "./pages/ScenariosPage";
 import { MLOpsPage } from "./pages/MLOpsPage";
+import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LoadingState } from "./components/common/LoadingState";
@@ -60,6 +61,7 @@ export const App: React.FC = () => {
         <Route path="machines/:id" element={<MachineDetailPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="maintenance" element={<MaintenancePage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="scenarios" element={<ScenariosPage />} />
         <Route path="mlops" element={<MLOpsPage />} />
         <Route path="settings" element={<SettingsPage />} />

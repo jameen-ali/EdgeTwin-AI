@@ -5,6 +5,7 @@ Legend: [FACT] sourced · [AUDIT] measured by us on the uploaded files · [DECIS
 Last updated: 2026-09-24 (discovery phase, no code written yet)
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-057]** S26 — History and Analytics View completed. Branch `feat/T-057-history-analytics`. Implemented dedicated operational historical analytics route at `/history` enabling operators and reliability engineers to investigate deep-dive machine and fleet performance across bounded time horizons (1h, 6h, 24h, 7d, 30d). Created backend `HistoryService` querying existing telemetry, prediction, alert, maintenance, and machine models without data duplication. Engineered defensible duration calculations for time-in-warning and time-in-critical without unwarranted continuous extrapolation (`MAX_SAMPLE_GAP_SECONDS = 300`). Built multi-horizon downsampling (1h/6h raw, 24h 60s bins, 7d 15m bins, 30d 1h bins) to protect browser memory and network bandwidth. Enforced strict timezone-aware UTC normalization across all datetime records. Added authenticated REST endpoints `GET /api/v1/history/machines/{machine_id}` and `GET /api/v1/history/fleet` with read-only RBAC. Built frontend pure React + SVG `HistoricalHealthChart` with threshold guides and tooltip crosshair; pure React + SVG `HistoricalSensorChart` with dynamic scaling, downsample indicator, and interactive switching across 8 telemetry sensors; `HistoricalPredictionTimeline` rendering persisted ML inference assessments ($p_{fail}$, risk bands, anomaly status, TreeSHAP margin attributions, model version); `HistoricalEventTimeline` tabbed across alerts (with status filtering) and maintenance work orders; and `FleetAnalyticsSection` with fleet health/risk distributions and retrospective triage table. 15 new backend tests (`tests/api/test_history.py`) and 10 new frontend integration tests (`dashboard/tests/historyAnalytics.test.tsx`) passing. Full regression suites pass cleanly (707 backend tests, 118 frontend tests). TypeScript `tsc --noEmit`, Vite production build, `ruff check`, and `black --check` 100% clean. Zero modifications to ML models, calibrations, threshold ($t^*=0.160$), drift reference stats, or held-out test data.
 - **[T-058]** S25 — MLOps Page and Scenario-Control UI completed. Branch `feat/T-058-mlops-scenario-ui`. Extended MLOps dashboard at `/mlops` with a controlled Scenario Control sub-tab and unified `/scenarios`. Dispatches 8 backend-validated canonical simulation presets (`SCN-01` Healthy Nominal through `SCN-08` Machine Offline) under strict command-guard authorization. Integrated scenario preview card with target machine, failure mode, command safety guard ("Preset Enforced — No Arbitrary Injection"), estimated duration, operating state, and RBAC requirements. Implemented two-step modal confirmation workflow to prevent accidental dispatches. Provided quick "Select Baseline (SCN-01)" action button. Enforced strict RBAC (`ADMIN` and `MAINTENANCE_ENGINEER` privileged dispatch, `OPERATOR` read-only observation mode). Recent session command acknowledgments audit table with server acknowledgments. Fully preserved S23 drift monitoring and S24 model lifecycle & governance. 11 new Vitest unit and integration tests passing; 108 total frontend tests passing across 12 files. Backend scenario tests (7 passed). TypeScript `tsc --noEmit` and Vite production build 100% clean. Zero modification to ML logic, calibration, threshold ($t^*=0.160$), or test data.
 - **[T-061]** S24 — Retrain Pipeline, Champion/Challenger Gate, Promotion & Rollback completed. Branch `feat/T-061-retraining-promotion`. Implemented governed model retraining and lifecycle promotion/rollback workflow with strict test set quarantine (`data/test/` zero access). Dataset assembled from authorized `train.csv` + `val.csv` with SHA-256 integrity hashes. Challenger models trained under frozen 14-feature contract, Platt/Sigmoid calibration, and evaluated at fixed operational threshold $t^* = 0.160$. Enforced 6-point technical promotion gate: recall protection ($\text{val\_recall} \ge \text{champ} - 0.05$), precision floor ($\ge 0.10$), feature contract (14 cols), calibration contract (`sigmoid`), threshold contract ($t^* = 0.160$), and technical inference gate. Explicit admin-only promotion and rollback (requiring mandatory justification) in MLflow Model Registry. Append-only audit trail in `artifacts/retrain_audit.jsonl`. Authenticated REST endpoints under `/api/v1/mlops` (`/retrain`, `/gate`, `/promote`, `/rollback`, `/registry`, `/audit-log`) with RBAC. Built interactive Model Lifecycle & Governance UI at `/mlops` with tabbed layout, promotion gate cards, retrain/rollback modals, and audit trail table. 65 new backend tests, 5 new frontend integration tests pass cleanly. Total Vitest suite: 97 passed. Ruff & Black 100% clean.
 - **[T-060]** S23 — Drift Monitoring & MLOps Feedback Analysis completed. Branch `feat/T-060-drift-monitoring`. Implemented production-oriented statistical drift monitoring (PSI + KS) comparing live operational telemetry against authorized training baseline (`data/interim/splits/train.csv`, `v1.0-train-split`, 42 machines, 6,897 samples). Continuous features evaluated via stable decile binning with $\epsilon=10^{-4}$ smoothing and two-sample KS test (`scipy.stats.ks_2samp`). Categorical `Machine_Type` evaluated via proportion PSI (KS excluded). Small-sample sufficiency guard ($n < 30 \implies \text{INSUFFICIENT\_DATA}$). Evaluated persisted operator feedback (`CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`) to compute running precision, recall, and false-alarm rate ($FP/\text{Total}$), excluding `INCONCLUSIVE` from binary metrics and requiring $\ge 5$ evaluated labels. Added authenticated REST endpoints under `/api/v1/mlops` (`GET /overview`, `GET /drift`, `GET /performance`). Built production MLOps dashboard at `/mlops`. Zero access to `data/test/`. All ML models, calibration, cutoff $t^*=0.160$, and health formulas strictly frozen. 271 backend tests and 92 frontend tests pass cleanly.
@@ -34,6 +35,64 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - **Waiting on:** (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S26 — T-057 History and Analytics View (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-057)
+- **Branch:** `feat/T-057-history-analytics`
+- **Base Commit:** `4fed863` (`feat(frontend): add mlops scenario control ui`)
+- **Files created:**
+  - `api/app/schemas/history.py`
+  - `api/app/services/history_service.py`
+  - `api/app/routes/history.py`
+  - `tests/api/test_history.py`
+  - `dashboard/src/types/history.ts`
+  - `dashboard/src/components/history/HistoricalHealthChart.tsx`
+  - `dashboard/src/components/history/HistoricalSensorChart.tsx`
+  - `dashboard/src/components/history/HistoricalPredictionTimeline.tsx`
+  - `dashboard/src/components/history/HistoricalEventTimeline.tsx`
+  - `dashboard/src/components/history/FleetAnalyticsSection.tsx`
+  - `dashboard/src/pages/HistoryPage.tsx`
+  - `dashboard/tests/historyAnalytics.test.tsx`
+  - `docs/sessions/S26_report.md`
+- **Files modified:**
+  - `api/app/main.py`
+  - `api/app/routes/__init__.py`
+  - `dashboard/src/api/client.ts`
+  - `dashboard/src/App.tsx`
+  - `dashboard/src/components/layout/Sidebar.tsx`
+  - `tasks.md`
+  - `memory.md`
+
+### Architecture & Key Decisions
+1. **Reuse of Authoritative Backend Storage:**
+   - Discovered and reused existing domain models: `TelemetryRecord`, `PredictionRecord`, `AlertRecord`, `MaintenanceEventRecord`, `MachineRecord`.
+   - Strictly avoided duplicate telemetry storage, duplicate alert workflows, or fabricated historical data.
+2. **Defensible Duration Calculations:**
+   - Implemented conservative sample-bounded time-in-warning and time-in-critical durations without continuous extrapolation over sparse observations (`MAX_SAMPLE_GAP_SECONDS = 300`).
+   - If telemetry observations are missing or gaps exceed 5 minutes, gaps are excluded from calculated durations.
+3. **Multi-Horizon Downsampling:**
+   - Configured downsampling strategies for high-frequency (1 Hz) telemetry: 1h/6h raw points (capped at 1000 pts), 24h 60s bins, 7d 15m bins, 30d 1h bins.
+   - Preserves network bandwidth and browser rendering performance while retaining exact event records (alerts and maintenance).
+4. **Timezone Normalization:**
+   - Enforced UTC timezone-awareness (`ensure_utc`) across all historical calculations and query inputs.
+   - Supported ISO 8601 timestamps and prevented offset-naive vs offset-aware datetime arithmetic errors.
+5. **Dedicated Operational Route at `/history`:**
+   - Scope selector (Fleet Overview or specific machine) and Horizon selector (1h, 6h, 24h, 7d, 30d).
+   - Zero-dependency pure React + SVG `HistoricalHealthChart` with threshold lines (>=80, 60-79, <60).
+   - Zero-dependency pure React + SVG `HistoricalSensorChart` supporting interactive switching across 8 telemetry sensors with dynamic scaling and downsampling badge.
+   - `HistoricalPredictionTimeline` displaying persisted ML inference assessments with honest empty state when no predictions exist.
+   - `HistoricalEventTimeline` tabbed across alerts (with status filter) and maintenance work orders.
+   - `FleetAnalyticsSection` with fleet health/risk distribution meters and retrospective triage table.
+6. **Verification & Quality Gates:**
+   - Backend: 15 comprehensive unit and integration tests in `tests/api/test_history.py` passing; full test suite passes (707 passed, 1 skipped).
+   - Frontend: 10 new Vitest tests in `dashboard/tests/historyAnalytics.test.tsx` passing; full test suite passes (118 passed across 13 files).
+   - TypeScript `tsc --noEmit` and Vite production build pass cleanly.
+   - Code formatting and linting: `ruff check` (0 errors), `black --check` (clean), `git diff --check` (clean).
+   - Zero modification to ML models, calibrations, threshold ($t^*=0.160$), drift reference stats, or `data/test/`.
 
 ---
 

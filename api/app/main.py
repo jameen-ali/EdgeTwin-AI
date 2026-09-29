@@ -16,6 +16,7 @@ from api.app.logging import get_logger, setup_logging
 from api.app.routes.alerts import router as alerts_router
 from api.app.routes.auth import router as auth_router
 from api.app.routes.health import router as health_router
+from api.app.routes.history import router as history_router
 from api.app.routes.machines import router as machines_router
 from api.app.routes.maintenance import router as maintenance_router
 from api.app.routes.mlops import router as mlops_router
@@ -218,6 +219,7 @@ def create_app() -> FastAPI:
     app.include_router(mlops_router, prefix=settings.API_V1_PREFIX)
     app.include_router(retrain_router, prefix=settings.API_V1_PREFIX)
     app.include_router(scenarios_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(history_router, prefix=settings.API_V1_PREFIX)
     # WebSocket live stream (T-037, T-038) — /ws/live and /ws/live/{machine_id}
     app.include_router(ws_router)
 

@@ -192,7 +192,7 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | T-054 | Digital Twin view (SVG schematic) | T-053 | DONE |
 | T-055 | Predictions + explanations panel | T-053 | DONE |
 | T-056 | Alerts + maintenance workflow + feedback | T-055 | DONE |
-| T-057 | History and analytics | T-053 | TODO |
+| T-057 | History and analytics | T-053 | DONE |
 | T-058 | Model / MLOps page + scenario control | T-060 | DONE |
 
 ### T-050 Design Tokens & Component Kit
@@ -256,6 +256,26 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Implementation:** Added `alert_id` foreign key with SQLite support to `maintenance_events` model and Alembic migration `0003_add_alert_id_to_maintenance.py`. Implemented `MaintenanceService` with listing, detail, creation (validating machine and linked alert existence and consistency), and lifecycle updates (`PLANNED` -> `IN_PROGRESS` -> `COMPLETED`/`CANCELLED` with automated timestamping). Enhanced `AlertService` with single alert lookup and strict transition rules (cannot re-open `RESOLVED` alerts). Enhanced `FeedbackService` with duplicate submission detection (raises `409 Conflict` on duplicate machine/alert feedback) and machine feedback querying. Added dedicated REST endpoints under `/api/v1/maintenance` and extended `/api/v1/alerts` and `/api/v1/machines`. Built comprehensive frontend operational components: `AlertDetailModal` for incident triage, `CreateWorkOrderModal` with AI recommendation prefill, `UpdateWorkOrderModal` for technician workflow progression, and `OperatorFeedbackModal` with ground-truth evaluation and non-retraining disclaimer. Connected workflows into `/alerts`, `/maintenance`, and `/machines/:id` (Operational Activity section). Role-gated actions to `ADMIN` and `MAINTENANCE_ENGINEER` while allowing `OPERATOR` feedback submission and viewing.
 - **Acceptance:** Full operational lifecycle verified; alert acknowledgment and resolution persisted in database; maintenance work orders created from alerts and AI recommendations; operator feedback recorded with ground-truth verification and duplicate rejection; RBAC enforced at API and UI levels; 14 new backend unit/integration tests pass; 11 new frontend integration tests pass; all 82 frontend tests and all 230 API tests pass.
 - **Tests:** `dashboard/tests/alertsWorkflow.test.tsx` (11 tests), `tests/api/test_alerts_maintenance_feedback.py` (14 tests).
+- **Status:** DONE
+
+### T-057 History and Analytics View
+- **Goal:** Implement a dedicated operational historical analytics experience at `/history` enabling operators and reliability engineers to analyze machine telemetry, composite health index trends, sensor observations, persisted ML model assessments, incident alert timelines, maintenance work order progression, and fleet-wide health/risk distribution retrospectively across bounded time windows (1h, 6h, 24h, 7d, 30d).
+- **Files:** `api/app/schemas/history.py`, `api/app/services/history_service.py`, `api/app/routes/history.py`, `api/app/main.py`, `api/app/routes/__init__.py`, `dashboard/src/types/history.ts`, `dashboard/src/api/client.ts`, `dashboard/src/components/history/HistoricalHealthChart.tsx`, `dashboard/src/components/history/HistoricalSensorChart.tsx`, `dashboard/src/components/history/HistoricalPredictionTimeline.tsx`, `dashboard/src/components/history/HistoricalEventTimeline.tsx`, `dashboard/src/components/history/FleetAnalyticsSection.tsx`, `dashboard/src/pages/HistoryPage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/components/layout/Sidebar.tsx`, `tests/api/test_history.py`, `dashboard/tests/historyAnalytics.test.tsx`.
+- **Depends:** T-053, T-055, T-056.
+- **Implementation:**
+  - Built backend `HistoryService` querying existing database models (`TelemetryRecord`, `PredictionRecord`, `AlertRecord`, `MaintenanceEventRecord`, `MachineRecord`) without duplicating storage.
+  - Formulated defensible duration calculations for time-in-warning and time-in-critical without unwarranted continuous extrapolation over sparse observations (`MAX_SAMPLE_GAP_SECONDS = 300`).
+  - Implemented configurable downsampling for high-density telemetry across historical horizons (1h/6h raw up to 1000 points, 24h 60s bins, 7d 15m bins, 30d 1h bins) and surfaced downsampling metadata (`is_downsampled`, `downsample_interval_s`).
+  - Normalized all datetimes strictly to timezone-aware UTC (`ensure_utc`), supporting ISO 8601 formatting and explicit query boundary checks (`to_ts >= from_ts`).
+  - Added authenticated REST endpoints under `/api/v1/history`: `GET /machines/{machine_id}` and `GET /fleet` with comprehensive Pydantic validation schemas. Enforced read-only RBAC accessible to all authenticated operational roles (`OPERATOR`, `MAINTENANCE_ENGINEER`, `ADMIN`).
+  - Built frontend `/history` route with Scope selector (Fleet Overview or specific machine) and Horizon selector (1h, 6h, 24h, 7d, 30d).
+  - Implemented pure React + SVG `HistoricalHealthChart` featuring threshold guidelines (>=80 Healthy, 60-79 Warning, <60 Critical), area gradients, interactive crosshairs, and hover tooltips.
+  - Implemented pure React + SVG `HistoricalSensorChart` supporting interactive switching across 8 telemetry sensors (Process Temp, Vibration RMS, Speed RPM, Torque, Pressure, Current, Voltage, Tool Wear) with dynamic scaling, min/avg/max KPIs, and downsample status badge.
+  - Built `HistoricalPredictionTimeline` presenting persisted ML inference records ($p_{fail}$, risk bands, anomaly status, TreeSHAP margin factors, model version) with honest empty states when no predictions exist.
+  - Built `HistoricalEventTimeline` with tabbed views for incident alerts (supporting status filters: All, Open, Acknowledged, Resolved) and maintenance work orders.
+  - Implemented `FleetAnalyticsSection` featuring fleet health/risk distribution meters, fleet summary KPI cards, and machine retrospective triage table with direct drilldown.
+- **Acceptance:** Full historical retrieval verified; defensible durations calculated correctly; downsampling prevents browser memory exhaustion; timezone-aware UTC consistency maintained; truthful empty states rendered; RBAC permissions verified; 15 new backend tests in `tests/api/test_history.py` pass; 10 new frontend integration tests in `dashboard/tests/historyAnalytics.test.tsx` pass; all 707 backend tests and 118 frontend tests pass; TypeScript and Vite production build pass cleanly; all ML models, calibrations, thresholds ($t^*=0.160$), and held-out test data strictly preserved.
+- **Tests:** `tests/api/test_history.py` (15 tests), `dashboard/tests/historyAnalytics.test.tsx` (10 tests).
 - **Status:** DONE
 
 ### T-058 Model / MLOps Page + Scenario-Control UI
