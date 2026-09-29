@@ -5,6 +5,7 @@ Legend: [FACT] sourced · [AUDIT] measured by us on the uploaded files · [DECIS
 Last updated: 2026-09-24 (discovery phase, no code written yet)
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-062, T-063]** S27 — GitHub Actions CI & Full Docker Compose Stack completed. Branch `feat/T-062-T-063-ci-compose`. Built production-grade GitHub Actions CI workflow in `.github/workflows/ci.yml` with 7 robust jobs: `backend-quality` (ruff, black), `firmware-native` (native C++ g++ build and unit tests), `ml-smoke` (deterministic model artifact, 14-feature contract, operational decision threshold $t^*=0.160$, risk band, and inference verification), `frontend-quality` (Node 20, npm ci, TypeScript linting, 118 Vitest tests, Vite production build), `backend-tests` (full 707 Pytest suite + Wokwi simulation runner), `docker-build` (Buildx container builds for `edgetwin-api:ci` and `edgetwin-frontend:ci` + compose validation), and `wokwi-simulation`. Created full Docker Compose deployment stack (`docker-compose.yml`) orchestrating 4 services: PostgreSQL 16 (with `pg_isready` healthcheck and named volume `postgres_data`), Eclipse Mosquitto 2.0 (with socket healthcheck and canonical topic mapping), FastAPI backend (multi-stage Dockerfile, automated Alembic migrations on startup via `scripts/docker-entrypoint.sh`, non-root user `edgetwin`, `/health` healthcheck), and React frontend (multi-stage Dockerfile with Node 20 builder and Nginx 1.25 runner with SPA routing and API/WebSocket reverse proxies). Created root `.dockerignore` excluding `.git`, test caches, and held-out test data (`data/test/`) while preserving ML artifacts. Updated `.env.example` and `README.md`. All regression suites pass (707 backend tests, 118 frontend tests, 6 ML smoke tests). TypeScript, Vite build, Ruff, and Black 100% clean. Zero modifications to ML models, calibrations, threshold ($t^*=0.160$), or held-out test data.
 - **[T-057]** S26 — History and Analytics View completed. Branch `feat/T-057-history-analytics`. Implemented dedicated operational historical analytics route at `/history` enabling operators and reliability engineers to investigate deep-dive machine and fleet performance across bounded time horizons (1h, 6h, 24h, 7d, 30d). Created backend `HistoryService` querying existing telemetry, prediction, alert, maintenance, and machine models without data duplication. Engineered defensible duration calculations for time-in-warning and time-in-critical without unwarranted continuous extrapolation (`MAX_SAMPLE_GAP_SECONDS = 300`). Built multi-horizon downsampling (1h/6h raw, 24h 60s bins, 7d 15m bins, 30d 1h bins) to protect browser memory and network bandwidth. Enforced strict timezone-aware UTC normalization across all datetime records. Added authenticated REST endpoints `GET /api/v1/history/machines/{machine_id}` and `GET /api/v1/history/fleet` with read-only RBAC. Built frontend pure React + SVG `HistoricalHealthChart` with threshold guides and tooltip crosshair; pure React + SVG `HistoricalSensorChart` with dynamic scaling, downsample indicator, and interactive switching across 8 telemetry sensors; `HistoricalPredictionTimeline` rendering persisted ML inference assessments ($p_{fail}$, risk bands, anomaly status, TreeSHAP margin attributions, model version); `HistoricalEventTimeline` tabbed across alerts (with status filtering) and maintenance work orders; and `FleetAnalyticsSection` with fleet health/risk distributions and retrospective triage table. 15 new backend tests (`tests/api/test_history.py`) and 10 new frontend integration tests (`dashboard/tests/historyAnalytics.test.tsx`) passing. Full regression suites pass cleanly (707 backend tests, 118 frontend tests). TypeScript `tsc --noEmit`, Vite production build, `ruff check`, and `black --check` 100% clean. Zero modifications to ML models, calibrations, threshold ($t^*=0.160$), drift reference stats, or held-out test data.
 - **[T-058]** S25 — MLOps Page and Scenario-Control UI completed. Branch `feat/T-058-mlops-scenario-ui`. Extended MLOps dashboard at `/mlops` with a controlled Scenario Control sub-tab and unified `/scenarios`. Dispatches 8 backend-validated canonical simulation presets (`SCN-01` Healthy Nominal through `SCN-08` Machine Offline) under strict command-guard authorization. Integrated scenario preview card with target machine, failure mode, command safety guard ("Preset Enforced — No Arbitrary Injection"), estimated duration, operating state, and RBAC requirements. Implemented two-step modal confirmation workflow to prevent accidental dispatches. Provided quick "Select Baseline (SCN-01)" action button. Enforced strict RBAC (`ADMIN` and `MAINTENANCE_ENGINEER` privileged dispatch, `OPERATOR` read-only observation mode). Recent session command acknowledgments audit table with server acknowledgments. Fully preserved S23 drift monitoring and S24 model lifecycle & governance. 11 new Vitest unit and integration tests passing; 108 total frontend tests passing across 12 files. Backend scenario tests (7 passed). TypeScript `tsc --noEmit` and Vite production build 100% clean. Zero modification to ML logic, calibration, threshold ($t^*=0.160$), or test data.
 - **[T-061]** S24 — Retrain Pipeline, Champion/Challenger Gate, Promotion & Rollback completed. Branch `feat/T-061-retraining-promotion`. Implemented governed model retraining and lifecycle promotion/rollback workflow with strict test set quarantine (`data/test/` zero access). Dataset assembled from authorized `train.csv` + `val.csv` with SHA-256 integrity hashes. Challenger models trained under frozen 14-feature contract, Platt/Sigmoid calibration, and evaluated at fixed operational threshold $t^* = 0.160$. Enforced 6-point technical promotion gate: recall protection ($\text{val\_recall} \ge \text{champ} - 0.05$), precision floor ($\ge 0.10$), feature contract (14 cols), calibration contract (`sigmoid`), threshold contract ($t^* = 0.160$), and technical inference gate. Explicit admin-only promotion and rollback (requiring mandatory justification) in MLflow Model Registry. Append-only audit trail in `artifacts/retrain_audit.jsonl`. Authenticated REST endpoints under `/api/v1/mlops` (`/retrain`, `/gate`, `/promote`, `/rollback`, `/registry`, `/audit-log`) with RBAC. Built interactive Model Lifecycle & Governance UI at `/mlops` with tabbed layout, promotion gate cards, retrain/rollback modals, and audit trail table. 65 new backend tests, 5 new frontend integration tests pass cleanly. Total Vitest suite: 97 passed. Ruff & Black 100% clean.
@@ -35,6 +36,52 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - **Waiting on:** (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S27 — T-062 GitHub Actions CI & T-063 Full Docker Compose Stack (2026-09-30)
+
+### Task completion
+- **Status:** DONE (T-062, T-063)
+- **Branch:** `feat/T-062-T-063-ci-compose`
+- **Base Commit:** `8d8ca23` (`feat(frontend): add history and analytics view`)
+- **Files created:**
+  - `tests/ml/test_ml_smoke.py`
+  - `scripts/ml_smoke_test.py`
+  - `scripts/docker-entrypoint.sh`
+  - `.dockerignore`
+  - `dashboard/Dockerfile`
+  - `dashboard/nginx.conf`
+  - `dashboard/.dockerignore`
+  - `docs/sessions/S27_report.md`
+- **Files modified:**
+  - `.github/workflows/ci.yml`
+  - `Dockerfile`
+  - `docker-compose.yml`
+  - `.env.example`
+  - `README.md`
+  - `tasks.md`
+  - `memory.md`
+
+### Architecture & Key Decisions
+1. **GitHub Actions CI Workflow (.github/workflows/ci.yml):**
+   - Configured with 7 fast, robust jobs: `backend-quality` (ruff, black), `firmware-native` (native C++ g++ build and unit tests), `ml-smoke` (deterministic model artifact, 14-feature contract, operational decision threshold $t^*=0.160$, risk band, and inference verification), `frontend-quality` (Node 20, npm ci, TypeScript linting, 118 Vitest tests, Vite production build), `backend-tests` (full 707 Pytest suite + Wokwi simulation runner), `docker-build` (Buildx container builds for `edgetwin-api:ci` and `edgetwin-frontend:ci` + compose validation), and `wokwi-simulation`.
+   - Zero `continue-on-error: true` flags to prevent hiding real regressions.
+2. **Deterministic ML Smoke Test:**
+   - Authored `tests/ml/test_ml_smoke.py` and `scripts/ml_smoke_test.py`: executes in < 2 seconds, verifying presence of serialized model artifacts (`calibrated_classifier_sigmoid.joblib`, `champion_features.json`, `anomaly_isolation_forest.joblib`, `anomaly_ref_params.json`, `training_reference_stats.json`), 14-feature contract without leakage columns, frozen operational threshold $t^* = 0.160$, valid probability bounds in $[0.0, 1.0]$, and risk-band categorization.
+   - Zero access to held-out test data (`data/test/`).
+3. **Full Docker Compose Stack (docker-compose.yml):**
+   - Orchestrates 4 services: PostgreSQL 16 (`edgetwin-postgres` with `pg_isready` healthcheck and named volume `postgres_data`), Eclipse Mosquitto 2.0 (`edgetwin-mosquitto` with TCP port 1883 and socket availability healthcheck), FastAPI backend (`edgetwin-api` depending on healthy postgres and mosquitto, port 8000), and React frontend (`edgetwin-frontend` depending on healthy api, port 3000 mapped to container 80).
+   - Removed obsolete top-level `version:` attribute in compose file.
+4. **Backend Container Hardening & Automated Migrations:**
+   - Updated root `Dockerfile`: multi-stage Python 3.11-slim container installing dependencies, copying application modules, operational artifacts (`artifacts/`), and scripts; runs as non-root user (`edgetwin`); healthcheck via `curl -f http://localhost:8000/health`.
+   - Created `scripts/docker-entrypoint.sh`: automatically applies Alembic migrations (`alembic -c api/alembic.ini upgrade head`) against the live PostgreSQL database before launching Uvicorn.
+5. **Frontend Container & Nginx Reverse Proxy:**
+   - Created multi-stage `dashboard/Dockerfile` and `dashboard/nginx.conf`: builds production React SPA with Node 20 alpine, serves static bundle via Nginx 1.25 alpine with gzip compression and security headers, and proxies `/api/` and `/ws/` live WebSocket streams to the backend container.
+6. **Security & Data Integrity:**
+   - Root `.dockerignore` excludes `.git`, test caches, and held-out test data (`data/test/`) while preserving required ML model artifacts.
+   - Updated `.env.example` with documented environment variables for local Docker Compose while preserving empty secret keys for test assertions.
+   - All tests pass (707 backend tests, 118 frontend tests, 6 ML smoke tests). TypeScript, Vite build, Ruff, and Black 100% clean. Zero modifications to ML models, calibrations, threshold ($t^*=0.160$), or held-out test data.
 
 ---
 

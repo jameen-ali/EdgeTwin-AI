@@ -1,22 +1,24 @@
-version: '3.8'
+# EdgeTwin AI - Full Multi-Container Docker Compose Stack (T-063)
+# Reproducible local deployment: Frontend + Backend API + PostgreSQL 16 + Eclipse Mosquitto
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: edgetwin-postgres
     environment:
-      POSTGRES_DB: edgetwin
-      POSTGRES_USER: edgetwin
-      POSTGRES_PASSWORD: edgetwin_dev_secret
+      POSTGRES_DB: ${POSTGRES_DB:-edgetwin}
+      POSTGRES_USER: ${POSTGRES_USER:-edgetwin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edgetwin_dev_secret}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U edgetwin -d edgetwin"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edgetwin} -d ${POSTGRES_DB:-edgetwin}"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 5s
     restart: unless-stopped
 
   mosquitto:
@@ -26,6 +28,12 @@ services:
       - "1883:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 1883 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
 
   api:
@@ -34,20 +42,47 @@ services:
       dockerfile: Dockerfile
     container_name: edgetwin-api
     environment:
-      ENVIRONMENT: development
-      DATABASE_URL: postgresql+psycopg2://edgetwin:edgetwin_dev_secret@postgres:5432/edgetwin
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-edgetwin}:${POSTGRES_PASSWORD:-edgetwin_dev_secret}@postgres:5432/${POSTGRES_DB:-edgetwin}
       MQTT_HOST: mosquitto
       MQTT_PORT: 1883
       API_HOST: 0.0.0.0
       API_PORT: 8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-edgetwin-dev-secret-key-do-not-use-in-production-12345678}
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173","http://localhost:80","http://localhost","http://127.0.0.1:3000","http://127.0.0.1:5173"]'
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       mosquitto:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: edgetwin-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
 
 volumes:
   postgres_data:
+    name: edgetwin-postgres_data

@@ -301,8 +301,8 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 |---|---|---|---|
 | T-060 | Drift monitor (PSI/KS) vs training reference + feedback-based performance tracking | T-035 | DONE |
 | T-061 | Retrain pipeline, champion/challenger gate, promotion, rollback | T-060, T-016 | DONE |
-| T-062 | GitHub Actions CI (lint, unit, contract, ML smoke, image build) | T-001 | TODO |
-| T-063 | Full `docker compose` stack | T-030 | TODO |
+| T-062 | GitHub Actions CI (lint, unit, contract, ML smoke, image build) | T-001 | DONE |
+| T-063 | Full `docker compose` stack | T-030 | DONE |
 
 ### T-060 Drift Monitor (PSI/KS) vs Training Reference + Feedback-based Performance Tracking
 - **Goal:** Implement production-oriented MLOps monitoring comparing current operational telemetry against authorized training baseline distributions using Population Stability Index (PSI) and two-sample Kolmogorov-Smirnov (KS) tests, alongside ground-truth model performance tracking (running precision, recall, false-alarm rate) derived from persisted operator feedback records, with an operational MLOps dashboard at `/mlops`.
@@ -338,6 +338,44 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
   - Enhanced frontend dashboard at `/mlops` with a dual-tab architecture: "Drift & Observability" (T-060) and "Model Lifecycle & Governance" (T-061). Implemented `ModelLifecyclePanel`, `PromotionGateCard`, `RetrainJobModal`, and `RollbackModal`.
 - **Acceptance:** Full test set quarantine enforced; frozen feature and threshold contracts preserved; recall protection prevents performance regressions; explicit human promotion required; append-only audit trail verified; 65 new backend tests pass; 5 new frontend integration tests pass; full test suites and production builds pass cleanly.
 - **Tests:** `tests/mlops/test_retrain.py` (26 tests), `tests/mlops/test_promote.py` (16 tests), `tests/api/test_retrain_api.py` (23 tests), `dashboard/tests/modelLifecycle.test.tsx` (5 tests).
+- **Status:** DONE
+
+### T-062 GitHub Actions CI (Lint, Unit, Contract, ML Smoke, Image Build)
+- **Goal:** Build a robust, reproducible, and fast-failing GitHub Actions CI pipeline in `.github/workflows/ci.yml` that validates code quality, native C++ firmware, operational ML invariants, frontend TypeScript/Vitest/Vite build, full backend test suites, and Docker container builds on every relevant push and pull request.
+- **Files:** `.github/workflows/ci.yml`, `tests/ml/test_ml_smoke.py`, `scripts/ml_smoke_test.py`, `tests/test_smoke.py`.
+- **Depends:** T-001, T-016, T-030, T-050.
+- **Implementation:**
+  - Designed multi-job GitHub Actions workflow triggered on pull requests and pushes to `main` and `feat/**` with concurrency group cancellation.
+  - Implemented `backend-quality` job running `ruff check .` and `black --check .` under Python 3.11.
+  - Retained `firmware-native` compiling native C++ edge harness (`g++ -std=c++17`) and running unit tests.
+  - Created dedicated deterministic `ml-smoke` job executing `tests/ml/test_ml_smoke.py` and `scripts/ml_smoke_test.py`: validates model artifact paths, 14-feature contract, operational decision threshold ($t^* = 0.160$), risk band mappings, and model inference without accessing held-out test data (`data/test/`).
+  - Implemented `frontend-quality` job under Node 20: runs `npm ci` (with package-lock caching), TypeScript compilation (`npm run lint`), Vitest test suite (`npm test -- --run`), and Vite production bundle build (`npm run build`).
+  - Implemented `backend-tests` job running the comprehensive Pytest suite and automated simulation runner.
+  - Implemented `docker-build` job validating `docker compose config` and building multi-container images (`edgetwin-api:ci` and `edgetwin-frontend:ci`) via Buildx without publishing.
+  - Preserved `wokwi-simulation` for cloud-based Wokwi execution with graceful fallback notice if `WOKWI_CLI_TOKEN` is unset.
+  - Enforced zero `continue-on-error: true` flags to prevent hiding real regressions.
+- **Acceptance:** All 7 workflow jobs configured; ML smoke test executes deterministically in < 2 seconds; zero access to held-out test data; frontend tests (118 passed) and backend tests (707 passed) pass cleanly; ruff and black formatting checks 100% clean.
+- **Tests:** `tests/ml/test_ml_smoke.py` (6 tests), `tests/test_smoke.py` (2 tests), `scripts/ml_smoke_test.py`.
+- **Status:** DONE
+
+### T-063 Full Docker Compose Stack
+- **Goal:** Create a reproducible, multi-container Docker Compose deployment stack connecting Frontend, Backend API, PostgreSQL 16, Eclipse Mosquitto MQTT broker, and ML inference services with automated migrations, robust healthchecks, non-root container security, and reverse proxy routing.
+- **Files:** `docker-compose.yml`, `Dockerfile`, `dashboard/Dockerfile`, `dashboard/nginx.conf`, `dashboard/.dockerignore`, `.dockerignore`, `scripts/docker-entrypoint.sh`, `.env.example`, `README.md`.
+- **Depends:** T-030, T-031, T-032, T-050.
+- **Implementation:**
+  - Upgraded root `Dockerfile` for `api`: multi-stage Python 3.11-slim container installing dependencies, copying application modules, operational artifacts (`artifacts/`), and scripts; runs as non-root user (`edgetwin`); healthcheck via `curl -f http://localhost:8000/health`.
+  - Created `scripts/docker-entrypoint.sh`: automatically applies Alembic migrations (`alembic -c api/alembic.ini upgrade head`) against the live PostgreSQL database before launching Uvicorn.
+  - Created multi-stage `dashboard/Dockerfile` and `dashboard/nginx.conf`: builds production React SPA with Node 20 alpine, serves static bundle via Nginx 1.25 alpine with gzip compression and security headers, and proxies `/api/` and `/ws/` live WebSocket streams to the backend container.
+  - Configured `docker-compose.yml` defining 4 orchestrated services:
+    1. `postgres` (PostgreSQL 16-alpine with named volume `postgres_data` and `pg_isready` healthcheck).
+    2. `mosquitto` (Eclipse Mosquitto 2.0 with TCP port 1883 and socket availability healthcheck).
+    3. `api` (FastAPI backend depending on healthy postgres and mosquitto, port 8000).
+    4. `frontend` (React + Nginx reverse proxy depending on healthy api, port 3000 mapped to container 80).
+  - Created root `.dockerignore` excluding `.git`, `node_modules`, test caches, and held-out test data (`data/test/`) while preserving required ML model artifacts.
+  - Updated `.env.example` with documented environment variables for local Docker Compose while preserving empty secret keys for test assertions.
+  - Documented complete quick start, endpoints, development credentials, and stop commands in `README.md`.
+- **Acceptance:** `docker compose config` validates cleanly without obsolete syntax; startup sequence governed by healthchecks rather than brittle sleep commands; non-root user security enforced; automated Alembic migration verifies cleanly; zero secrets committed; no architectural regressions.
+- **Tests:** `docker compose config`, `tests/test_smoke.py`.
 - **Status:** DONE
 
 

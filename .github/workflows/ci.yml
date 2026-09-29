@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Code Quality & Linting
+  backend-quality:
+    name: Backend Lint & Code Formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install Linters
         run: |
@@ -63,10 +64,62 @@ jobs:
       - name: Execute Native Firmware Unit Tests
         run: ./test_native_edge
 
-  test-suite:
-    name: Python Unit, Contract & Integration Tests
+  ml-smoke:
+    name: ML Production Smoke Test
     runs-on: ubuntu-latest
-    needs: [lint, firmware-native]
+    env:
+      MLFLOW_SKIP_PIP_REQUIREMENTS_CHECK: "true"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies for ML Smoke
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run ML Smoke Test
+        run: python scripts/ml_smoke_test.py
+
+  frontend-quality:
+    name: Frontend Lint, Tests & Production Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Run TypeScript Type Check & Linter
+        run: npm run lint
+
+      - name: Run Vitest Frontend Test Suite
+        run: npm test -- --run
+
+      - name: Build Production Frontend Bundle
+        run: npm run build
+
+  backend-tests:
+    name: Backend Unit, Contract & Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-quality, ml-smoke, firmware-native]
     env:
       MLFLOW_SKIP_PIP_REQUIREMENTS_CHECK: "true"
       SECRET_KEY: "ci-test-secret-key-for-jwt-signing-deterministic"
@@ -97,6 +150,38 @@ jobs:
 
       - name: Run Automated Simulation Runner
         run: python simulation/wokwi_runner.py --json
+
+  docker-build:
+    name: Docker Images Build & Compose Validation
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+
+      - name: Build Backend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: edgetwin-api:ci
+          load: true
+
+      - name: Build Frontend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./dashboard
+          file: ./dashboard/Dockerfile
+          push: false
+          tags: edgetwin-frontend:ci
+          load: true
 
   wokwi-simulation:
     name: Wokwi Hardware Simulation (Emulated)

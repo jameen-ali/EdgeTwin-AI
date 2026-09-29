@@ -1,0 +1,70 @@
+# Version Control
+.git
+.github
+.gitignore
+.gitattributes
+
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+
+# Python cache and byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Held-out Test Data & Large Datasets (Section 7 & 19: NEVER bundle in Docker image)
+data/test/
+notebooks/
+
+# Frontend dependencies and build artifacts (built separately)
+dashboard/node_modules/
+dashboard/dist/
+
+# Local database & logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+mlflow.db
+mlruns/
+
+# DVC
+.dvc/
+.dvcignore
+dvc.lock
+dvc.yaml

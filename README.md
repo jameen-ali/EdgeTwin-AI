@@ -87,6 +87,57 @@ flowchart LR
 3. Ensure you have the `edgetwin` virtual environment active for all development work.
 4. Set up `pre-commit`: `pre-commit install`
 
+## Local Deployment via Docker Compose (T-063)
+
+EdgeTwin AI includes a multi-container Docker Compose stack for local development and demonstration:
+
+```bash
+# 1. Copy environment template
+cp .env.example .env
+
+# 2. Build and launch all services in detached mode
+docker compose up --build -d
+
+# 3. View live logs
+docker compose logs -f
+
+# 4. Stop and preserve volumes
+docker compose down
+```
+
+### Services & Endpoints
+
+| Service | Container Name | Local Endpoint | Description |
+|---|---|---|---|
+| **Frontend** | `edgetwin-frontend` | [http://localhost:3000](http://localhost:3000) | React SPA served via Nginx reverse proxy |
+| **Backend API** | `edgetwin-api` | [http://localhost:8000](http://localhost:8000) | FastAPI REST service with automated Alembic migrations |
+| **API Docs (Swagger)** | `edgetwin-api` | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive OpenAPI / Swagger UI |
+| **PostgreSQL 16** | `edgetwin-postgres` | `localhost:5432` | Relational persistence with named volume `postgres_data` |
+| **Mosquitto MQTT** | `edgetwin-mosquitto` | `localhost:1883` | MQTT broker (canonical topic: `edgetwin/v1/{machine_id}/#`) |
+
+### Development Authentication
+
+The backend includes seed credentials for local testing:
+- **Admin:** `admin` / `admin123` (`ADMIN` role)
+- **Engineer:** `engineer` / `engineer123` (`MAINTENANCE_ENGINEER` role)
+- **Operator:** `operator` / `operator123` (`OPERATOR` role)
+
+---
+
+## Continuous Integration (GitHub Actions) (T-062)
+
+The `.github/workflows/ci.yml` pipeline runs on every pull request and push to `main` and `feat/**`:
+
+1. **`backend-quality`**: Python linting (`ruff check .`) and code formatting (`black --check .`).
+2. **`firmware-native`**: Host compilation (`g++ -std=c++17`) and execution of native C++ edge firmware unit tests.
+3. **`ml-smoke`**: Fast, deterministic verification of serialized model artifacts, 14-feature contract, operational decision threshold ($t^* = 0.160$), risk bands, and model inference without accessing held-out test data.
+4. **`frontend-quality`**: Frontend dependency installation (`npm ci`), TypeScript type check (`npm run lint`), Vitest test suite (`npm test -- --run`), and Vite production build (`npm run build`).
+5. **`backend-tests`**: Full Pytest suite (unit, contract, integration tests) and simulation verification.
+6. **`docker-build`**: Docker Compose configuration validation and multi-container image builds (`edgetwin-api:ci` and `edgetwin-frontend:ci`).
+7. **`wokwi-simulation`**: Live Wokwi cloud simulation when `WOKWI_CLI_TOKEN` secret is configured.
+
+---
+
 ## Repository Folder Map
 
 - `api/`: Backend service
@@ -101,4 +152,4 @@ flowchart LR
 - `tests/`: Test suites
 
 ## Note on Data
-Existing data is simulated/synthetic or under provenance verification where documented.
+Existing data is simulated/synthetic or under provenance verification where documented. Held-out test data (`data/test/`) is strictly isolated and never accessed by CI smoke tests or container builds.
