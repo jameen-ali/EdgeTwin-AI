@@ -78,7 +78,7 @@ class DriftReportDTO(BaseModel):
     watch_features_count: int = Field(0, description="Count of features in WATCH state")
     stable_features_count: int = Field(0, description="Count of features in STABLE state")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
 class PerformanceMetricsDTO(BaseModel):

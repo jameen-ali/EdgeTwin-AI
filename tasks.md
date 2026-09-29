@@ -262,7 +262,7 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | ID | Goal | Depends | Status |
 |---|---|---|---|
 | T-060 | Drift monitor (PSI/KS) vs training reference + feedback-based performance tracking | T-035 | DONE |
-| T-061 | Retrain pipeline, champion/challenger gate, promotion, rollback | T-060, T-016 | TODO |
+| T-061 | Retrain pipeline, champion/challenger gate, promotion, rollback | T-060, T-016 | DONE |
 | T-062 | GitHub Actions CI (lint, unit, contract, ML smoke, image build) | T-001 | TODO |
 | T-063 | Full `docker compose` stack | T-030 | TODO |
 
@@ -285,6 +285,21 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
   - Enhanced dashboard at `/mlops`: model governance strip (champion `v1.2-xgb`, reference `v1.0-train-split`, cutoff $t^*=0.160$), 4 KPI metric cards, active drift alert banner, status-tabbed and searchable feature drift `DataTable`, feedback status breakdown with visual distribution meter, and data science governance disclaimer.
 - **Acceptance:** Reference baseline generated exclusively from training split without test contamination; PSI and KS detectors deterministic with edge case handling; operator feedback evaluated truthfully; all ML invariants (XGBoost, calibration, cutoff, health formula, Isolation Forest, TreeSHAP) frozen with zero automatic retraining or promotion; 13 drift tests, 6 feedback tests, 6 API tests, 10 frontend tests pass cleanly; full 271 backend tests and 92 frontend tests pass.
 - **Tests:** `tests/mlops/test_drift.py` (13 tests), `tests/mlops/test_feedback_metrics.py` (6 tests), `tests/api/test_mlops_api.py` (6 tests), `dashboard/tests/mlopsPage.test.tsx` (10 tests).
+- **Status:** DONE
+
+### T-061 Retrain Pipeline, Champion/Challenger Gate, Promotion, Rollback
+- **Goal:** Implement a fully governed retraining pipeline, champion/challenger technical comparison gate, explicit promotion workflow, safe rollback mechanism, and immutable audit logging, accompanied by REST API endpoints and a dedicated frontend Model Lifecycle & Governance dashboard at `/mlops`.
+- **Files:** `mlops/retrain.py`, `mlops/promote.py`, `api/app/schemas/retrain.py`, `api/app/services/retrain_service.py`, `api/app/routes/retrain.py`, `api/app/main.py`, `api/app/routes/__init__.py`, `dashboard/src/types/mlops.ts`, `dashboard/src/api/client.ts`, `dashboard/src/components/mlops/ModelLifecyclePanel.tsx`, `dashboard/src/components/mlops/PromotionGateCard.tsx`, `dashboard/src/components/mlops/RetrainJobModal.tsx`, `dashboard/src/components/mlops/RollbackModal.tsx`, `dashboard/src/pages/MLOpsPage.tsx`, `tests/mlops/test_retrain.py`, `tests/mlops/test_promote.py`, `tests/api/test_retrain_api.py`, `dashboard/tests/modelLifecycle.test.tsx`.
+- **Depends:** T-060, T-016.
+- **Implementation:**
+  - Implemented `mlops/retrain.py`: Assembles retraining dataset from authorized `train.csv` (6,897 rows, 42 machines) and `val.csv` (1,619 rows, 9 machines) with SHA-256 integrity verification. Strict test-quarantine guard (`_assert_no_test_set_access`) rejects any access to `data/test/` or test machine IDs. Trains challenger XGBoost model under frozen hyperparameter and feature contracts (14 features: 10 raw sensors + `Machine_Type` + 3 physics). Fits Platt/Sigmoid calibration on `val.csv`. Evaluates metrics strictly at frozen cutoff $t^* = 0.160$. Logs run and registers model with alias `challenger` in MLflow Model Registry.
+  - Implemented `mlops/promote.py`: 6 hard promotion gates: (1) recall protection ($\text{val\_recall} \ge \text{champ} - 0.05$), (2) precision floor ($\ge 0.10$), (3) feature contract ($n=14$), (4) calibration contract (`sigmoid`), (5) threshold contract ($t^* = 0.160$), and (6) technical inference gate (schema, bounds, threshold, risk bands). Computes soft PR-AUC delta for decision support.
+  - Implemented explicit administrative promotion re-assigning `champion` alias in MLflow registry. Implemented safe rollback re-assigning `champion` alias to a designated existing version with mandatory justification.
+  - Implemented append-only tamper-evident audit log in `artifacts/retrain_audit.jsonl` recording all retrain, promotion, and rollback events with actors, timestamps, and metrics.
+  - Added authenticated REST endpoints under `/api/v1/mlops`: `POST /retrain` (Admin), `GET /gate` (Admin/Engineer), `POST /promote` (Admin), `POST /rollback` (Admin), `GET /registry` (Admin/Engineer), `GET /audit-log` (Admin).
+  - Enhanced frontend dashboard at `/mlops` with a dual-tab architecture: "Drift & Observability" (T-060) and "Model Lifecycle & Governance" (T-061). Implemented `ModelLifecyclePanel`, `PromotionGateCard`, `RetrainJobModal`, and `RollbackModal`.
+- **Acceptance:** Full test set quarantine enforced; frozen feature and threshold contracts preserved; recall protection prevents performance regressions; explicit human promotion required; append-only audit trail verified; 65 new backend tests pass; 5 new frontend integration tests pass; full test suites and production builds pass cleanly.
+- **Tests:** `tests/mlops/test_retrain.py` (26 tests), `tests/mlops/test_promote.py` (16 tests), `tests/api/test_retrain_api.py` (23 tests), `dashboard/tests/modelLifecycle.test.tsx` (5 tests).
 - **Status:** DONE
 
 

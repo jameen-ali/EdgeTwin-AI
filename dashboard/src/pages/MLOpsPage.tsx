@@ -24,6 +24,7 @@ import { Button } from "../components/common/Button";
 import { api } from "../api/client";
 import { FeatureDrift, MLOpsOverview } from "../types/mlops";
 import { formatDateTime } from "../utils/formatters";
+import { ModelLifecyclePanel } from "../components/mlops/ModelLifecyclePanel";
 
 export const MLOpsPage: React.FC = () => {
   const [overview, setOverview] = useState<MLOpsOverview | null>(null);
@@ -31,6 +32,7 @@ export const MLOpsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Filter controls
+  const [activeTab, setActiveTab] = useState<"drift" | "lifecycle">("drift");
   const [windowHours, setWindowHours] = useState<number>(24);
   const [feedbackWindowDays, setFeedbackWindowDays] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -313,6 +315,62 @@ export const MLOpsPage: React.FC = () => {
         }
       />
 
+      {/* Sub-tab Navigation */}
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-2)",
+          borderBottom: "1px solid var(--color-border)",
+          paddingBottom: "var(--space-2)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab("drift")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "var(--radius-sm)",
+            border: "none",
+            backgroundColor: activeTab === "drift" ? "var(--color-surface-raised)" : "transparent",
+            color: activeTab === "drift" ? "var(--color-accent)" : "var(--color-text-secondary)",
+            fontWeight: 600,
+            fontSize: "13px",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <Activity size={15} />
+          Drift & Performance Monitoring
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("lifecycle")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "var(--radius-sm)",
+            border: "none",
+            backgroundColor: activeTab === "lifecycle" ? "var(--color-surface-raised)" : "transparent",
+            color: activeTab === "lifecycle" ? "var(--color-accent)" : "var(--color-text-secondary)",
+            fontWeight: 600,
+            fontSize: "13px",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <GitBranch size={15} />
+          Model Lifecycle & Governance
+        </button>
+      </div>
+
+      {activeTab === "lifecycle" ? (
+        <ModelLifecyclePanel />
+      ) : (
+        <>
       {/* Model & Reference Governance Banner */}
       <div
         style={{
@@ -720,6 +778,8 @@ export const MLOpsPage: React.FC = () => {
           </div>
         </Card>
       </div>
+      </>
+      )}
     </div>
   );
 };

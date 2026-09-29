@@ -3,10 +3,9 @@
 Living log. Update on every important decision, bug, fix, dependency, API or DB change. Newest entries at the top of each section.
 Legend: [FACT] sourced · [AUDIT] measured by us on the uploaded files · [DECISION] · [PROPOSED] · [ASSUMPTION]
 Last updated: 2026-09-24 (discovery phase, no code written yet)
-
----
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-061]** S24 — Retrain Pipeline, Champion/Challenger Gate, Promotion & Rollback completed. Branch `feat/T-061-retraining-promotion`. Implemented governed model retraining and lifecycle promotion/rollback workflow with strict test set quarantine (`data/test/` zero access). Dataset assembled from authorized `train.csv` + `val.csv` with SHA-256 integrity hashes. Challenger models trained under frozen 14-feature contract, Platt/Sigmoid calibration, and evaluated at fixed operational threshold $t^* = 0.160$. Enforced 6-point technical promotion gate: recall protection ($\text{val\_recall} \ge \text{champ} - 0.05$), precision floor ($\ge 0.10$), feature contract (14 cols), calibration contract (`sigmoid`), threshold contract ($t^* = 0.160$), and technical inference gate. Explicit admin-only promotion and rollback (requiring mandatory justification) in MLflow Model Registry. Append-only audit trail in `artifacts/retrain_audit.jsonl`. Authenticated REST endpoints under `/api/v1/mlops` (`/retrain`, `/gate`, `/promote`, `/rollback`, `/registry`, `/audit-log`) with RBAC. Built interactive Model Lifecycle & Governance UI at `/mlops` with tabbed layout, promotion gate cards, retrain/rollback modals, and audit trail table. 65 new backend tests, 5 new frontend integration tests pass cleanly. Total Vitest suite: 97 passed. Ruff & Black 100% clean.
 - **[T-060]** S23 — Drift Monitoring & MLOps Feedback Analysis completed. Branch `feat/T-060-drift-monitoring`. Implemented production-oriented statistical drift monitoring (PSI + KS) comparing live operational telemetry against authorized training baseline (`data/interim/splits/train.csv`, `v1.0-train-split`, 42 machines, 6,897 samples). Continuous features evaluated via stable decile binning with $\epsilon=10^{-4}$ smoothing and two-sample KS test (`scipy.stats.ks_2samp`). Categorical `Machine_Type` evaluated via proportion PSI (KS excluded). Small-sample sufficiency guard ($n < 30 \implies \text{INSUFFICIENT\_DATA}$). Evaluated persisted operator feedback (`CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`) to compute running precision, recall, and false-alarm rate ($FP/\text{Total}$), excluding `INCONCLUSIVE` from binary metrics and requiring $\ge 5$ evaluated labels. Added authenticated REST endpoints under `/api/v1/mlops` (`GET /overview`, `GET /drift`, `GET /performance`). Built production MLOps dashboard at `/mlops`. Zero access to `data/test/`. All ML models, calibration, cutoff $t^*=0.160$, and health formulas strictly frozen. 271 backend tests and 92 frontend tests pass cleanly.
 - **[T-056]** S22 — Alerts + Maintenance Workflow & Feedback completed. Branch `feat/T-056-alerts-maintenance-feedback`. Implemented closed-loop operational workflows connecting AI risk detection to human acknowledgment, incident triage, maintenance event scheduling/work orders, and ground-truth operator feedback. Added `alert_id` foreign key with SQLite support to `maintenance_events` and Alembic migration `0003_add_alert_id_to_maintenance.py`. Implemented `MaintenanceService` with lifecycle state progression (`PLANNED` -> `IN_PROGRESS` -> `COMPLETED`/`CANCELLED`) and auto-timestamping. Enhanced `AlertService` with strict transition guards and `FeedbackService` with duplicate submission detection (409 Conflict). Added dedicated REST endpoints under `/api/v1/maintenance` and extended alerts/machine routes. Built frontend `AlertDetailModal`, `CreateWorkOrderModal` (with AI recommendation prefill), `UpdateWorkOrderModal`, and `OperatorFeedbackModal`. Enhanced `/alerts`, `/maintenance`, and `/machines/:id`. Enforced strict RBAC (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`). 14 new backend unit/integration tests, 11 new frontend integration tests. 230 API tests and 82 frontend tests pass cleanly. All ML invariants and held-out data remain 100% frozen.
 - **[T-054, T-055]** S21 — Digital Twin Visualization & Predictions/Explanations Panel completed. Branch `feat/T-054-T-055-digital-twin-predictions`.
@@ -33,7 +32,74 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-032]** MQTT Telemetry Ingestion Service and Persistence implemented. Branch `feat/T-032-mqtt-ingestion`. Paho MQTT client runs in background thread with automatic exponential backoff reconnect. Message handler validates schema and sensor ranges, normalizes fields, and idempotently persists `TelemetryRecord` with machine auto-registration and duplicate drop. 39 tests in `tests/api/`. Total 408 passed, 1 skipped.
 - **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
-- Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+- **Waiting on:** (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S24 — T-061 Retrain Pipeline, Champion/Challenger Gate, Promotion & Rollback (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-061)
+- **Branch:** `feat/T-061-retraining-promotion`
+- **Base Commit:** `4ab2f25` (`feat(mlops): add drift monitoring and feedback analysis`)
+- **Files created:**
+  - `mlops/retrain.py`
+  - `mlops/promote.py`
+  - `api/app/schemas/retrain.py`
+  - `api/app/services/retrain_service.py`
+  - `api/app/routes/retrain.py`
+  - `dashboard/src/components/mlops/ModelLifecyclePanel.tsx`
+  - `dashboard/src/components/mlops/PromotionGateCard.tsx`
+  - `dashboard/src/components/mlops/RetrainJobModal.tsx`
+  - `dashboard/src/components/mlops/RollbackModal.tsx`
+  - `dashboard/tests/modelLifecycle.test.tsx`
+  - `tests/mlops/test_retrain.py`
+  - `tests/mlops/test_promote.py`
+  - `tests/api/test_retrain_api.py`
+  - `docs/sessions/S24_report.md`
+- **Files modified:**
+  - `api/app/main.py`
+  - `api/app/routes/__init__.py`
+  - `dashboard/src/api/client.ts`
+  - `dashboard/src/pages/MLOpsPage.tsx`
+  - `dashboard/src/types/mlops.ts`
+  - `tasks.md`
+  - `memory.md`
+
+### Architecture & Key Decisions
+1. **Authorized Retraining Dataset Assembly:**
+   - Ingestion restricted strictly to `data/interim/splits/train.csv` (6,897 rows, 42 machines) and `val.csv` (1,619 rows, 9 machines).
+   - Test set `data/test/` (1,484 rows, 9 machines) is quarantined with runtime assertion `_assert_no_test_set_access` raising `ValueError` on path or machine ID overlap.
+   - SHA-256 file checksums computed and recorded in audit log.
+   - Feature derivation preserves frozen 14-column contract (`BASE_FEATURE_COLS`, `FROZEN_FEATURE_SET` `+physics`).
+2. **Retraining & Calibration Engine:**
+   - Retrains frozen XGBoost classifier (depth=6, lr=0.05, trees=300, scale_pos_weight=8.11, seed=42).
+   - Platt/Sigmoid probability calibration fitted via `CalibratedClassifierCV(method="sigmoid", cv="prefit")` on `val.csv`.
+   - All validation metrics evaluated at frozen decision threshold $t^* = 0.160$ (Recall, Precision, PR-AUC, ROC-AUC, Brier score).
+   - Logs parameters, metrics, and packages model via MLflow `pyfunc`, registering with alias `challenger`.
+3. **Governed Promotion Gate:**
+   - 6 Hard gates:
+     1. Recall Protection: $\text{Recall}_{\text{val}} \ge \text{Champion Recall}_{\text{val}} - 0.05$ (guarantees critical fault catch rate).
+     2. Precision Floor: $\text{Precision}_{\text{val}} \ge 0.10$.
+     3. Feature Contract: exactly 14 features matching frozen schema.
+     4. Calibration Contract: `sigmoid` method.
+     5. Threshold Contract: operational cutoff $t^* = 0.160$.
+     6. Technical Inference Gate: passes 10-step schema and inference validation.
+   - Soft Signal: $\Delta \text{PR-AUC}$ displayed for visibility but non-blocking.
+   - Explicit human action required for promotion (no self-promotion).
+4. **Safe Rollback Mechanism:**
+   - Rollback re-assigns `champion` alias in MLflow to a designated historical version.
+   - Mandatory reason required; rejected if empty or version nonexistent.
+5. **Tamper-Evident Audit Trail:**
+   - Append-only log at `artifacts/retrain_audit.jsonl`.
+   - Records `retrain_started`, `retrain_completed`, `retrain_failed`, `promotion_gate_evaluated`, `promotion_executed`, `promotion_gate_failed`, `rollback_executed`.
+6. **REST API & RBAC:**
+   - Under `/api/v1/mlops`: `POST /retrain` (Admin), `GET /gate` (Admin/Engineer), `POST /promote` (Admin), `POST /rollback` (Admin), `GET /registry` (Admin/Engineer), `GET /audit-log` (Admin).
+7. **Frontend Lifecycle Dashboard:**
+   - Tabbed MLOps page (`/mlops`): Tab 1 "Drift & Observability", Tab 2 "Model Lifecycle & Governance".
+   - Model Registry table, Promotion Gate card with delta comparison and checklist, Retrain and Rollback modals, and live Audit Trail table.
+8. **Invariants Frozen:**
+   - XGBoost architecture, calibration method (`sigmoid`), cutoff $t^*=0.160$, health formulas, and held-out test quarantine remain 100% frozen.
 
 ---
 

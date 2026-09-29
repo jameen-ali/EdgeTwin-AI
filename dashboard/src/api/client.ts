@@ -21,7 +21,19 @@ import {
 } from "../types/maintenance";
 import { FeedbackItem, FeedbackCreatePayload } from "../types/feedback";
 import { ScenarioSummary } from "../types/scenario";
-import { MLOpsOverview, DriftReport, PerformanceMetrics } from "../types/mlops";
+import {
+  MLOpsOverview,
+  DriftReport,
+  PerformanceMetrics,
+  RetrainRequestPayload,
+  ChallengerResult,
+  PromotionGate,
+  PromotionResult,
+  RollbackRequestPayload,
+  RollbackResult,
+  ModelRegistry,
+  AuditLog,
+} from "../types/mlops";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
@@ -449,6 +461,49 @@ export const api = {
       if (params?.window_days) searchParams.append("window_days", String(params.window_days));
       const queryStr = searchParams.toString();
       return request<PerformanceMetrics>(`/mlops/performance${queryStr ? `?${queryStr}` : ""}`, {
+        method: "GET",
+      });
+    },
+  },
+
+  retrain: {
+    run: (payload?: RetrainRequestPayload): Promise<ChallengerResult> => {
+      return request<ChallengerResult>("/retrain/run", {
+        method: "POST",
+        body: JSON.stringify(payload || {}),
+      });
+    },
+
+    getGate: (): Promise<PromotionGate> => {
+      return request<PromotionGate>("/retrain/gate", {
+        method: "GET",
+      });
+    },
+
+    promote: (): Promise<PromotionResult> => {
+      return request<PromotionResult>("/retrain/promote", {
+        method: "POST",
+      });
+    },
+
+    rollback: (payload: RollbackRequestPayload): Promise<RollbackResult> => {
+      return request<RollbackResult>("/retrain/rollback", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    getRegistry: (): Promise<ModelRegistry> => {
+      return request<ModelRegistry>("/retrain/registry", {
+        method: "GET",
+      });
+    },
+
+    getAuditLog: (params?: { limit?: number }): Promise<AuditLog> => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      const queryStr = searchParams.toString();
+      return request<AuditLog>(`/retrain/audit-log${queryStr ? `?${queryStr}` : ""}`, {
         method: "GET",
       });
     },
