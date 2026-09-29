@@ -3,8 +3,15 @@
  */
 
 import { ApiError, ProblemDetails, HealthResponse } from "../types/api";
+export { ApiError };
 import { AuthUser, LoginPayload, TokenResponse } from "../types/auth";
-import { MachineSummary, normalizeMachine } from "../types/machine";
+import {
+  MachineSummary,
+  MachineDetail,
+  TwinState,
+  TelemetryPoint,
+  normalizeMachine,
+} from "../types/machine";
 import { AlertItem } from "../types/alert";
 import { ScenarioSummary } from "../types/scenario";
 
@@ -151,6 +158,49 @@ export const api = {
         method: "GET",
       });
       return normalizeMachine(res);
+    },
+
+    getDetail: (machineId: string): Promise<MachineDetail> => {
+      return request<MachineDetail>(`/machines/${encodeURIComponent(machineId)}`, {
+        method: "GET",
+      });
+    },
+
+    getTwin: (machineId: string): Promise<TwinState> => {
+      return request<TwinState>(`/machines/${encodeURIComponent(machineId)}/twin`, {
+        method: "GET",
+      });
+    },
+
+    getTelemetry: async (
+      machineId: string,
+      params?: {
+        limit?: number;
+        offset?: number;
+        before?: string;
+        after?: string;
+        seq_min?: number;
+        seq_max?: number;
+      }
+    ): Promise<TelemetryPoint[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+      if (params?.before) searchParams.append("before", params.before);
+      if (params?.after) searchParams.append("after", params.after);
+      if (params?.seq_min !== undefined) searchParams.append("seq_min", String(params.seq_min));
+      if (params?.seq_max !== undefined) searchParams.append("seq_max", String(params.seq_max));
+
+      const queryStr = searchParams.toString();
+      const res = await request<TelemetryPoint[] | { items: TelemetryPoint[]; total: number }>(
+        `/machines/${encodeURIComponent(machineId)}/telemetry${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: TelemetryPoint[] }).items)) {
+        return (res as { items: TelemetryPoint[] }).items;
+      }
+      return [];
     },
   },
 

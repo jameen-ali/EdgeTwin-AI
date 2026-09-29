@@ -704,7 +704,7 @@ export const DashboardPage: React.FC = () => {
             columns={columns}
             data={filteredMachines}
             keyExtractor={(m) => m.machine_id}
-            onRowClick={(m) => navigate(`/machines?id=${encodeURIComponent(m.machine_id)}`)}
+            onRowClick={(m) => navigate(`/machines/${encodeURIComponent(m.machine_id)}`)}
           />
         ) : (
           /* Cards Grid View */
@@ -724,7 +724,7 @@ export const DashboardPage: React.FC = () => {
               return (
                 <div
                   key={m.machine_id}
-                  onClick={() => navigate(`/machines?id=${encodeURIComponent(m.machine_id)}`)}
+                  onClick={() => navigate(`/machines/${encodeURIComponent(m.machine_id)}`)}
                   style={{
                     backgroundColor: "var(--color-surface)",
                     border: `1px solid ${isElevated ? "var(--color-warning-border)" : "var(--color-border)"}`,

@@ -5,6 +5,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MachinesPage } from "./pages/MachinesPage";
+import { MachineDetailPage } from "./pages/MachineDetailPage";
 import { AlertsPage } from "./pages/AlertsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { ScenariosPage } from "./pages/ScenariosPage";
@@ -56,6 +57,7 @@ export const App: React.FC = () => {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="machines" element={<MachinesPage />} />
+        <Route path="machines/:id" element={<MachineDetailPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="maintenance" element={<MaintenancePage />} />
         <Route path="scenarios" element={<ScenariosPage />} />

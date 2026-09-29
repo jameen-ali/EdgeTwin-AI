@@ -1,14 +1,30 @@
 /**
  * Machine, Telemetry, and Digital Twin type definitions.
  * Conforms to canonical backend and firmware state definitions:
- * - Health: HEALTHY, WARNING, CRITICAL, MAINTENANCE REQUIRED, OFFLINE
- * - Operating: RUNNING, TRIPPED
+ * - Health: HEALTHY, WARNING, CRITICAL, MAINTENANCE REQUIRED, OFFLINE, STALE
+ * - Operating: RUNNING, STOPPED, STARTING, DEGRADING, TRIPPED
  * - Connectivity: LIVE, STALE, OFFLINE
  */
 
-export type OperatingState = "RUNNING" | "TRIPPED";
-export type HealthState = "HEALTHY" | "WARNING" | "CRITICAL" | "MAINTENANCE REQUIRED" | "OFFLINE";
-export type ConnectivityState = "LIVE" | "STALE" | "OFFLINE";
+export type OperatingState =
+  | "RUNNING"
+  | "STOPPED"
+  | "STARTING"
+  | "DEGRADING"
+  | "TRIPPED"
+  | string;
+
+export type HealthState =
+  | "HEALTHY"
+  | "WARNING"
+  | "CRITICAL"
+  | "MAINTENANCE REQUIRED"
+  | "MAINTENANCE_REQUIRED"
+  | "OFFLINE"
+  | "STALE"
+  | string;
+
+export type ConnectivityState = "LIVE" | "STALE" | "OFFLINE" | string;
 
 export interface TelemetryReading {
   air_temperature_c: number;
@@ -21,20 +37,57 @@ export interface TelemetryReading {
   timestamp: string;
 }
 
+export interface TelemetryPoint {
+  id?: number;
+  machine_id?: string;
+  seq?: number;
+  ts: string;
+  provenance?: string;
+  fw?: string | null;
+  air_temp_c?: number | null;
+  process_temp_c?: number | null;
+  rotational_speed_rpm?: number | null;
+  torque_nm?: number | null;
+  vibration_mm_s?: number | null;
+  pressure_bar?: number | null;
+  current_a?: number | null;
+  voltage_v?: number | null;
+  tool_wear_min?: number | null;
+  operating_hours?: number | null;
+  quality?: Record<string, any> | null;
+  delta_t_c?: number | null;
+  power_va?: number | null;
+  trip?: string | null;
+  buffered?: number;
+}
+
 export interface TwinState {
   machine_id: string;
-  machine_type: string;
+  machine_type?: string;
   operating_state: OperatingState;
   health_state: HealthState;
-  connectivity_state: ConnectivityState;
-  health_score: number;
-  failure_probability: number;
-  risk_band: string;
-  anomaly_score: number;
-  last_telemetry_at: string | null;
-  last_prediction_at: string | null;
-  reported: Record<string, unknown>;
-  derived: Record<string, unknown>;
+  connectivity_state?: ConnectivityState;
+  sync_status?: string;
+  health_score: number | null;
+  failure_probability: number | null;
+  risk_band: string | null;
+  anomaly_score?: number | null;
+  anomaly_flag?: boolean | null;
+  last_telemetry_at?: string | null;
+  last_telemetry_ts?: string | null;
+  last_prediction_at?: string | null;
+  last_seq?: number | null;
+  updated_at?: string | null;
+  signals?: Record<string, any>;
+  quality?: Record<string, string>;
+  edge?: Record<string, any>;
+  top_factors?: Array<Record<string, any>> | null;
+  recommendation?: Record<string, any> | null;
+  model_version?: string;
+  provenance?: string;
+  fw?: string | null;
+  reported?: Record<string, unknown>;
+  derived?: Record<string, unknown>;
 }
 
 export interface MachineSummary {
@@ -55,13 +108,44 @@ export interface MachineSummary {
   updated_at?: string | null;
 }
 
+export interface MachineDetail {
+  machine_id: string;
+  machine_type: string;
+  location?: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  latest_twin?: TwinState | null;
+  latest_telemetry?: {
+    id?: number;
+    seq?: number;
+    ts?: string;
+    provenance?: string;
+    fw?: string | null;
+    signals?: Record<string, number | null>;
+    delta_t_c?: number | null;
+    power_va?: number | null;
+    trip?: string | null;
+  } | null;
+  latest_prediction?: {
+    id?: number;
+    ts?: string;
+    failure_probability?: number | null;
+    risk_band?: string | null;
+    health_score?: number | null;
+    anomaly_flag?: boolean | null;
+    anomaly_score?: number | null;
+  } | null;
+}
+
 export function normalizeMachine(
   m: Partial<MachineSummary>,
   liveTwin?: TwinState
 ): MachineSummary {
   const operating_state = liveTwin?.operating_state ?? m.operating_state ?? "RUNNING";
   const health_state = liveTwin?.health_state ?? m.health_state ?? "HEALTHY";
-  const connectivity_state = liveTwin?.connectivity_state ?? m.connectivity_state ?? m.sync_status ?? "LIVE";
+  const connectivity_state =
+    liveTwin?.connectivity_state ?? liveTwin?.sync_status ?? m.connectivity_state ?? m.sync_status ?? "LIVE";
   const health_score = typeof liveTwin?.health_score === "number"
     ? liveTwin.health_score
     : (typeof m.health_score === "number" ? m.health_score : 100);
@@ -69,7 +153,8 @@ export function normalizeMachine(
     ? liveTwin.failure_probability
     : (typeof m.failure_probability === "number" ? m.failure_probability : 0.0);
   const risk_band = liveTwin?.risk_band ?? m.risk_band ?? (failure_probability > 0.16 ? "HIGH" : "LOW");
-  const last_telemetry_at = liveTwin?.last_telemetry_at ?? m.last_telemetry_at ?? m.last_telemetry_ts ?? null;
+  const last_telemetry_at =
+    liveTwin?.last_telemetry_at ?? liveTwin?.last_telemetry_ts ?? m.last_telemetry_at ?? m.last_telemetry_ts ?? null;
 
   return {
     machine_id: m.machine_id || "UNKNOWN",

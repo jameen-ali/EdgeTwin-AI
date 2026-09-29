@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Cpu, RefreshCw } from "lucide-react";
 import { PageHeader } from "../components/layout/PageHeader";
 import { Card } from "../components/common/Card";
@@ -15,6 +16,7 @@ import { api } from "../api/client";
 import { formatNumber, formatPercent, formatDateTime } from "../utils/formatters";
 
 export const MachinesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [machines, setMachines] = useState<MachineSummary[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -139,6 +141,7 @@ export const MachinesPage: React.FC = () => {
             columns={columns}
             data={filtered}
             keyExtractor={(m) => m.machine_id}
+            onRowClick={(m) => navigate(`/machines/${encodeURIComponent(m.machine_id)}`)}
           />
         )}
       </Card>

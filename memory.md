@@ -828,6 +828,7 @@ Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, pydantic, paho-mqtt (or aiomqtt), 
 - S15: Alembic migration `0002_add_users_table` creating `users` table for authentication, role assignments (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`), and RBAC enforcement. Mounted `/api/v1/auth/login`, `/api/v1/auth/me`, `/api/v1/scenarios`, `/api/v1/scenarios/inject`, and WebSocket authentication guards on `/ws/live` and `/ws/live/{machine_id}`.
 - S18: Established frontend foundation (T-050, T-051): design tokens, 17 reusable UI components, App shell, navigation rail, typed API client with RFC 7807 problem details parsing, JWT auth context with RBAC, and WebSocket client.
 - S19: Implemented production Fleet Dashboard (T-052): live 1 Hz WebSocket twin stream integration, operational KPI metrics, multi-condition status filtering, search, severity sorting, table/cards dual-view, and active alert triage panel.
+- S20: Implemented Machine Detail & Live Telemetry Monitoring (T-053): per-machine view at `/machines/:id`, canonical twin state, calibrated risk ($t^*=0.16$), priority sensor metrics with truthful nulls (`—`), zero-dependency SVG time-series charts, 1 Hz live WebSocket telemetry streaming without page reloads, and raw observations log.
 
 ## 14. Open questions
 1. **Dataset source / licence / generation method?** (blocks T-002)
