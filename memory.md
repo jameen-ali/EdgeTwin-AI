@@ -7,6 +7,7 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 ---
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-060]** S23 — Drift Monitoring & MLOps Feedback Analysis completed. Branch `feat/T-060-drift-monitoring`. Implemented production-oriented statistical drift monitoring (PSI + KS) comparing live operational telemetry against authorized training baseline (`data/interim/splits/train.csv`, `v1.0-train-split`, 42 machines, 6,897 samples). Continuous features evaluated via stable decile binning with $\epsilon=10^{-4}$ smoothing and two-sample KS test (`scipy.stats.ks_2samp`). Categorical `Machine_Type` evaluated via proportion PSI (KS excluded). Small-sample sufficiency guard ($n < 30 \implies \text{INSUFFICIENT\_DATA}$). Evaluated persisted operator feedback (`CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`) to compute running precision, recall, and false-alarm rate ($FP/\text{Total}$), excluding `INCONCLUSIVE` from binary metrics and requiring $\ge 5$ evaluated labels. Added authenticated REST endpoints under `/api/v1/mlops` (`GET /overview`, `GET /drift`, `GET /performance`). Built production MLOps dashboard at `/mlops`. Zero access to `data/test/`. All ML models, calibration, cutoff $t^*=0.160$, and health formulas strictly frozen. 271 backend tests and 92 frontend tests pass cleanly.
 - **[T-056]** S22 — Alerts + Maintenance Workflow & Feedback completed. Branch `feat/T-056-alerts-maintenance-feedback`. Implemented closed-loop operational workflows connecting AI risk detection to human acknowledgment, incident triage, maintenance event scheduling/work orders, and ground-truth operator feedback. Added `alert_id` foreign key with SQLite support to `maintenance_events` and Alembic migration `0003_add_alert_id_to_maintenance.py`. Implemented `MaintenanceService` with lifecycle state progression (`PLANNED` -> `IN_PROGRESS` -> `COMPLETED`/`CANCELLED`) and auto-timestamping. Enhanced `AlertService` with strict transition guards and `FeedbackService` with duplicate submission detection (409 Conflict). Added dedicated REST endpoints under `/api/v1/maintenance` and extended alerts/machine routes. Built frontend `AlertDetailModal`, `CreateWorkOrderModal` (with AI recommendation prefill), `UpdateWorkOrderModal`, and `OperatorFeedbackModal`. Enhanced `/alerts`, `/maintenance`, and `/machines/:id`. Enforced strict RBAC (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`). 14 new backend unit/integration tests, 11 new frontend integration tests. 230 API tests and 82 frontend tests pass cleanly. All ML invariants and held-out data remain 100% frozen.
 - **[T-054, T-055]** S21 — Digital Twin Visualization & Predictions/Explanations Panel completed. Branch `feat/T-054-T-055-digital-twin-predictions`.
 - **[T-053]** S20 — Machine Detail & Live Telemetry Monitoring completed. Branch `feat/T-053-machine-detail`.
@@ -33,6 +34,66 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S23 — T-060 Drift Monitoring & MLOps Feedback Analysis (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-060)
+- **Branch:** `feat/T-060-drift-monitoring`
+- **Base Commit:** `e873014` (`feat(ops): add alert maintenance and feedback workflows`)
+- **Files created:**
+  - `mlops/drift.py`
+  - `mlops/feedback_metrics.py`
+  - `artifacts/training_reference_stats.json`
+  - `api/app/schemas/mlops.py`
+  - `api/app/services/mlops_service.py`
+  - `api/app/routes/mlops.py`
+  - `dashboard/src/types/mlops.ts`
+  - `tests/mlops/test_drift.py`
+  - `tests/mlops/test_feedback_metrics.py`
+  - `tests/api/test_mlops_api.py`
+  - `dashboard/tests/mlopsPage.test.tsx`
+  - `docs/sessions/S23_report.md`
+- **Files modified:**
+  - `api/app/main.py`
+  - `api/app/routes/__init__.py`
+  - `api/app/schemas/feedback.py`
+  - `dashboard/src/api/client.ts`
+  - `dashboard/src/pages/MLOpsPage.tsx`
+  - `tasks.md`
+  - `memory.md`
+
+### Architecture & Key Decisions
+1. **Statistical Reference Baseline:**
+   - Sourced strictly from authorized training split `data/interim/splits/train.csv` (version `v1.0-train-split`, 42 machines, 6,897 samples).
+   - Zero test set contamination: `data/test/` is completely excluded and untouched.
+   - Reference statistics serialized to `artifacts/training_reference_stats.json` containing stable decile bin edges $[-\infty, +\infty]$, sample sizes, means, stds, missing rates, and categorical proportions for all 14 features (13 continuous + `Machine_Type`).
+2. **Feature Drift Detection (PSI + KS):**
+   - **PSI Detector:** Evaluates distribution shift against immutable reference decile bins. Applies $\epsilon=10^{-4}$ smoothing for zero-count bins. Evaluates categorical `Machine_Type` via category proportions with `__OTHER__` fallback. Heuristic thresholds: PSI $<0.10$ STABLE, $[0.10, 0.25)$ WATCH, $\ge 0.25$ DRIFT.
+   - **KS Detector:** Two-sample Kolmogorov-Smirnov test (`scipy.stats.ks_2samp`) on continuous numeric features, exposing test statistic $D$ and $p$-value. Categorical `Machine_Type` is excluded (returns `None` / N/A). Threshold: $p < 0.05$ and $D \ge 0.15 \implies \text{DRIFT}$.
+   - **Sample Sufficiency Guard:** Requires $n \ge 30$ observations in operational window before computing drift; smaller samples return `INSUFFICIENT_DATA` without fabricating p-values.
+   - **Data Quality Tracking:** Missing data percentages tracked separately for reference vs current window; flags quality degradation when delta $> 0.15$.
+3. **Operator Feedback Performance Analysis:**
+   - Evaluates persisted `operator_feedback` records (`CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`).
+   - Correctly excludes `INCONCLUSIVE` from binary precision and recall denominators to prevent misleading penalty.
+   - Precision: $TP / (TP + FP)$ where $TP = \text{CONFIRMED}$, $FP = \text{FALSE\_ALARM}$.
+   - False-Alarm Rate: $FP / \text{Total}$ evaluated feedback. Avoids conflating $1 - \text{precision}$ with false-alarm rate.
+   - Requires $\ge 5$ evaluated labels before reporting performance percentages, returning `INSUFFICIENT_DATA` (with `—`) when below minimum.
+4. **MLOps API:**
+   - Under `/api/v1/mlops`: `GET /overview`, `GET /drift`, `GET /performance`.
+   - Authenticated via JWT, read access granted to all platform roles (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`).
+   - Layered architecture: Route -> Schema -> Service -> ORM.
+5. **Operational MLOps Dashboard (`/mlops`):**
+   - Header metadata strip: Champion model `v1.2-xgb`, Reference `v1.0-train-split`, Decision cutoff $t^*=0.160$.
+   - 4 KPI cards: Overall Drift Status, Labeled Feedback Count, Running Precision, False-Alarm Rate.
+   - Active drift alert banner for features exceeding thresholds.
+   - Feature drift `DataTable` with status tabs, search filter, numeric PSI, KS, and categorical handling.
+   - Feedback breakdown distribution bar.
+   - Governance notice: Statistical drift does not imply machine failure or model degradation; retraining is NOT triggered automatically.
+6. **ML Invariants Frozen:**
+   - XGBoost champion (`v1.2-xgb`), Platt calibration, decision cutoff $t^*=0.160$, health formula, Isolation Forest, and TreeSHAP remain 100% frozen.
 
 ---
 

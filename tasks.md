@@ -261,10 +261,32 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 ## PHASE 6 — MLOps
 | ID | Goal | Depends | Status |
 |---|---|---|---|
-| T-060 | Drift monitor (PSI/KS) vs training reference + feedback-based performance tracking | T-035 | TODO |
+| T-060 | Drift monitor (PSI/KS) vs training reference + feedback-based performance tracking | T-035 | DONE |
 | T-061 | Retrain pipeline, champion/challenger gate, promotion, rollback | T-060, T-016 | TODO |
 | T-062 | GitHub Actions CI (lint, unit, contract, ML smoke, image build) | T-001 | TODO |
 | T-063 | Full `docker compose` stack | T-030 | TODO |
+
+### T-060 Drift Monitor (PSI/KS) vs Training Reference + Feedback-based Performance Tracking
+- **Goal:** Implement production-oriented MLOps monitoring comparing current operational telemetry against authorized training baseline distributions using Population Stability Index (PSI) and two-sample Kolmogorov-Smirnov (KS) tests, alongside ground-truth model performance tracking (running precision, recall, false-alarm rate) derived from persisted operator feedback records, with an operational MLOps dashboard at `/mlops`.
+- **Files:** `mlops/drift.py`, `mlops/feedback_metrics.py`, `artifacts/training_reference_stats.json`, `api/app/schemas/mlops.py`, `api/app/schemas/feedback.py`, `api/app/services/mlops_service.py`, `api/app/routes/mlops.py`, `api/app/main.py`, `dashboard/src/types/mlops.ts`, `dashboard/src/api/client.ts`, `dashboard/src/pages/MLOpsPage.tsx`, `tests/mlops/test_drift.py`, `tests/mlops/test_feedback_metrics.py`, `tests/api/test_mlops_api.py`, `dashboard/tests/mlopsPage.test.tsx`.
+- **Depends:** T-035, T-056.
+- **Implementation:**
+  - Engineered core statistical drift engine in `mlops/drift.py`: 13 continuous features + 1 categorical (`Machine_Type`).
+  - Implemented stable quantile-based reference decile binning with $[-\infty, +\infty]$ bounds, zero-frequency $\epsilon = 10^{-4}$ smoothing, and missing value exclusion.
+  - Implemented categorical PSI comparing class proportions with `__OTHER__` unseen category handling.
+  - Implemented continuous two-sample Kolmogorov-Smirnov test (`scipy.stats.ks_2samp`) exposing test statistic $D$ and $p$-value; explicitly excluded categorical `Machine_Type` from KS (returns `None` / N/A).
+  - Enforced small-sample sufficiency guard ($n < 30 \implies \text{INSUFFICIENT\_DATA}$) to prevent manufactured drift conclusions.
+  - Defined operational heuristic thresholds: PSI $<0.10$ STABLE, $[0.10, 0.25)$ WATCH, $\ge 0.25$ DRIFT; KS $p < 0.05$ and $D \ge 0.15 \implies \text{DRIFT}$.
+  - Computed and serialized immutable baseline reference statistics from `data/interim/splits/train.csv` (version `v1.0-train-split`, 42 machines, 6,897 samples). Held-out test set `data/test/` strictly untouched.
+  - Developed `mlops/feedback_metrics.py`: extracts operator feedback records (`CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`). Correctly excludes `INCONCLUSIVE` from binary precision and recall denominators.
+  - Computes running precision ($TP / (TP + FP)$), recall estimate ($TP / (TP + FN)$), and operational false-alarm rate ($FP / \text{Total}$). Explicitly avoids confusing $1 - \text{precision}$ with false-alarm rate.
+  - Required minimum 5 evaluated labels before reporting performance metrics, otherwise displaying `INSUFFICIENT_DATA` (never fabricating 0%).
+  - Added authenticated backend REST endpoints under `/api/v1/mlops`: `GET /overview`, `GET /drift`, `GET /performance`. Enforced RBAC (read access for all authenticated roles).
+  - Enhanced dashboard at `/mlops`: model governance strip (champion `v1.2-xgb`, reference `v1.0-train-split`, cutoff $t^*=0.160$), 4 KPI metric cards, active drift alert banner, status-tabbed and searchable feature drift `DataTable`, feedback status breakdown with visual distribution meter, and data science governance disclaimer.
+- **Acceptance:** Reference baseline generated exclusively from training split without test contamination; PSI and KS detectors deterministic with edge case handling; operator feedback evaluated truthfully; all ML invariants (XGBoost, calibration, cutoff, health formula, Isolation Forest, TreeSHAP) frozen with zero automatic retraining or promotion; 13 drift tests, 6 feedback tests, 6 API tests, 10 frontend tests pass cleanly; full 271 backend tests and 92 frontend tests pass.
+- **Tests:** `tests/mlops/test_drift.py` (13 tests), `tests/mlops/test_feedback_metrics.py` (6 tests), `tests/api/test_mlops_api.py` (6 tests), `dashboard/tests/mlopsPage.test.tsx` (10 tests).
+- **Status:** DONE
+
 
 ## PHASE 7 — Verification and demo
 | ID | Goal | Depends | Status |

@@ -21,6 +21,7 @@ import {
 } from "../types/maintenance";
 import { FeedbackItem, FeedbackCreatePayload } from "../types/feedback";
 import { ScenarioSummary } from "../types/scenario";
+import { MLOpsOverview, DriftReport, PerformanceMetrics } from "../types/mlops";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
@@ -418,6 +419,38 @@ export const api = {
         return (res as { items: ScenarioSummary[] }).items;
       }
       return [];
+    },
+  },
+
+  mlops: {
+    getOverview: (params?: { window_hours?: number; window_days?: number }): Promise<MLOpsOverview> => {
+      const searchParams = new URLSearchParams();
+      if (params?.window_hours) searchParams.append("window_hours", String(params.window_hours));
+      if (params?.window_days) searchParams.append("window_days", String(params.window_days));
+      const queryStr = searchParams.toString();
+      return request<MLOpsOverview>(`/mlops/overview${queryStr ? `?${queryStr}` : ""}`, {
+        method: "GET",
+      });
+    },
+
+    getDrift: (params?: { window_hours?: number; limit?: number }): Promise<DriftReport> => {
+      const searchParams = new URLSearchParams();
+      if (params?.window_hours) searchParams.append("window_hours", String(params.window_hours));
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      const queryStr = searchParams.toString();
+      return request<DriftReport>(`/mlops/drift${queryStr ? `?${queryStr}` : ""}`, {
+        method: "GET",
+      });
+    },
+
+    getPerformance: (params?: { window?: string; window_days?: number }): Promise<PerformanceMetrics> => {
+      const searchParams = new URLSearchParams();
+      if (params?.window) searchParams.append("window", params.window);
+      if (params?.window_days) searchParams.append("window_days", String(params.window_days));
+      const queryStr = searchParams.toString();
+      return request<PerformanceMetrics>(`/mlops/performance${queryStr ? `?${queryStr}` : ""}`, {
+        method: "GET",
+      });
     },
   },
 
