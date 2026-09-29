@@ -20,7 +20,11 @@ import {
   MaintenanceUpdatePayload,
 } from "../types/maintenance";
 import { FeedbackItem, FeedbackCreatePayload } from "../types/feedback";
-import { ScenarioSummary } from "../types/scenario";
+import {
+  ScenarioSummary,
+  ScenarioInjectPayload,
+  ScenarioInjectResponse,
+} from "../types/scenario";
 import {
   MLOpsOverview,
   DriftReport,
@@ -423,14 +427,28 @@ export const api = {
 
   scenarios: {
     list: async (): Promise<ScenarioSummary[]> => {
-      const res = await request<ScenarioSummary[] | { items: ScenarioSummary[]; total: number }>("/scenarios", {
+      const res = await request<
+        ScenarioSummary[] | { items?: ScenarioSummary[]; scenarios?: ScenarioSummary[]; total?: number }
+      >("/scenarios", {
         method: "GET",
       });
       if (Array.isArray(res)) return res;
-      if (res && typeof res === "object" && Array.isArray((res as { items?: ScenarioSummary[] }).items)) {
-        return (res as { items: ScenarioSummary[] }).items;
+      if (res && typeof res === "object") {
+        if (Array.isArray((res as { scenarios?: ScenarioSummary[] }).scenarios)) {
+          return (res as { scenarios: ScenarioSummary[] }).scenarios!;
+        }
+        if (Array.isArray((res as { items?: ScenarioSummary[] }).items)) {
+          return (res as { items: ScenarioSummary[] }).items!;
+        }
       }
       return [];
+    },
+
+    inject: (payload: ScenarioInjectPayload): Promise<ScenarioInjectResponse> => {
+      return request<ScenarioInjectResponse>("/scenarios/inject", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     },
   },
 

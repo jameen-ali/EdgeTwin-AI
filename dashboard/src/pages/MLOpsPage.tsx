@@ -25,6 +25,7 @@ import { api } from "../api/client";
 import { FeatureDrift, MLOpsOverview } from "../types/mlops";
 import { formatDateTime } from "../utils/formatters";
 import { ModelLifecyclePanel } from "../components/mlops/ModelLifecyclePanel";
+import { ScenarioControlPanel } from "../components/mlops/ScenarioControlPanel";
 
 export const MLOpsPage: React.FC = () => {
   const [overview, setOverview] = useState<MLOpsOverview | null>(null);
@@ -32,7 +33,7 @@ export const MLOpsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Filter controls
-  const [activeTab, setActiveTab] = useState<"drift" | "lifecycle">("drift");
+  const [activeTab, setActiveTab] = useState<"drift" | "lifecycle" | "scenarios">("drift");
   const [windowHours, setWindowHours] = useState<number>(24);
   const [feedbackWindowDays, setFeedbackWindowDays] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -365,10 +366,33 @@ export const MLOpsPage: React.FC = () => {
           <GitBranch size={15} />
           Model Lifecycle & Governance
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("scenarios")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "var(--radius-sm)",
+            border: "none",
+            backgroundColor: activeTab === "scenarios" ? "var(--color-surface-raised)" : "transparent",
+            color: activeTab === "scenarios" ? "var(--color-accent)" : "var(--color-text-secondary)",
+            fontWeight: 600,
+            fontSize: "13px",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <Sliders size={15} />
+          Scenario Control
+        </button>
       </div>
 
       {activeTab === "lifecycle" ? (
         <ModelLifecyclePanel />
+      ) : activeTab === "scenarios" ? (
+        <ScenarioControlPanel />
       ) : (
         <>
       {/* Model & Reference Governance Banner */}

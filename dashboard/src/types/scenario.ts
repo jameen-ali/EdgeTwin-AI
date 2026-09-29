@@ -6,14 +6,30 @@ export interface ScenarioSummary {
   scenario_id: string;
   name: string;
   description: string;
-  category: string;
-  severity: "CRITICAL" | "WARNING" | "INFO";
-  parameters: Record<string, unknown>;
+  target_fault?: string;
+  category?: string;
+  severity?: "CRITICAL" | "WARNING" | "INFO";
+  duration_s?: number;
+  parameters?: Record<string, unknown>;
+}
+
+export interface ScenarioListResponse {
+  scenarios: ScenarioSummary[];
+  total: number;
 }
 
 export interface ScenarioInjectPayload {
-  scenario_id: string;
   machine_id: string;
-  duration_seconds?: number;
-  override_params?: Record<string, unknown>;
+  scenario_id: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface ScenarioInjectResponse {
+  command_id: string;
+  machine_id: string;
+  scenario_id: string;
+  status: string;
+  message: string;
+  injected_by: string;
+  injected_at: string;
 }

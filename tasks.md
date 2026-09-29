@@ -191,9 +191,9 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 | T-053 | Machine detail + live monitoring | T-051 | DONE |
 | T-054 | Digital Twin view (SVG schematic) | T-053 | DONE |
 | T-055 | Predictions + explanations panel | T-053 | DONE |
-| T-056 | Alerts + maintenance workflow + feedback | T-055 | TODO |
+| T-056 | Alerts + maintenance workflow + feedback | T-055 | DONE |
 | T-057 | History and analytics | T-053 | TODO |
-| T-058 | Model / MLOps page + scenario control | T-060 | TODO |
+| T-058 | Model / MLOps page + scenario control | T-060 | DONE |
 
 ### T-050 Design Tokens & Component Kit
 - **Goal:** Synthesize design references (Browser Use, Deepgram, LaunchDarkly) into an original, dark-first industrial AI control room design system and reusable component kit.
@@ -256,6 +256,24 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Implementation:** Added `alert_id` foreign key with SQLite support to `maintenance_events` model and Alembic migration `0003_add_alert_id_to_maintenance.py`. Implemented `MaintenanceService` with listing, detail, creation (validating machine and linked alert existence and consistency), and lifecycle updates (`PLANNED` -> `IN_PROGRESS` -> `COMPLETED`/`CANCELLED` with automated timestamping). Enhanced `AlertService` with single alert lookup and strict transition rules (cannot re-open `RESOLVED` alerts). Enhanced `FeedbackService` with duplicate submission detection (raises `409 Conflict` on duplicate machine/alert feedback) and machine feedback querying. Added dedicated REST endpoints under `/api/v1/maintenance` and extended `/api/v1/alerts` and `/api/v1/machines`. Built comprehensive frontend operational components: `AlertDetailModal` for incident triage, `CreateWorkOrderModal` with AI recommendation prefill, `UpdateWorkOrderModal` for technician workflow progression, and `OperatorFeedbackModal` with ground-truth evaluation and non-retraining disclaimer. Connected workflows into `/alerts`, `/maintenance`, and `/machines/:id` (Operational Activity section). Role-gated actions to `ADMIN` and `MAINTENANCE_ENGINEER` while allowing `OPERATOR` feedback submission and viewing.
 - **Acceptance:** Full operational lifecycle verified; alert acknowledgment and resolution persisted in database; maintenance work orders created from alerts and AI recommendations; operator feedback recorded with ground-truth verification and duplicate rejection; RBAC enforced at API and UI levels; 14 new backend unit/integration tests pass; 11 new frontend integration tests pass; all 82 frontend tests and all 230 API tests pass.
 - **Tests:** `dashboard/tests/alertsWorkflow.test.tsx` (11 tests), `tests/api/test_alerts_maintenance_feedback.py` (14 tests).
+- **Status:** DONE
+
+### T-058 Model / MLOps Page + Scenario-Control UI
+- **Goal:** Build a controlled demonstration and simulation Scenario Control layer integrated directly into the MLOps dashboard (`/mlops`) and standalone scenarios page (`/scenarios`), allowing authorized operators (`ADMIN`, `MAINTENANCE_ENGINEER`) to trigger canonical machine/telemetry fault scenarios (`SCN-01` to `SCN-08`) under strict backend command-guard authorization without free-form telemetry injection or ML model modifications.
+- **Files:** `dashboard/src/components/mlops/ScenarioControlPanel.tsx`, `dashboard/src/pages/MLOpsPage.tsx`, `dashboard/src/pages/ScenariosPage.tsx`, `dashboard/src/api/client.ts`, `dashboard/src/types/scenario.ts`, `dashboard/tests/scenarioControl.test.tsx`.
+- **Depends:** T-060, T-061, T-021.
+- **Implementation:**
+  - Preserved intact all S23 drift monitoring (PSI, KS, feedback accuracy) and S24 model lifecycle & governance (MLflow model registry, champion/challenger comparison, promotion gate, rollback, audit trail) on `/mlops`.
+  - Added 3rd sub-tab "Scenario Control" to `/mlops` and unified standalone `/scenarios` view using `ScenarioControlPanel`.
+  - Dynamically loads fleet machines via `api.machines.list()` and 8 backend canonical simulation scenarios (`SCN-01` Healthy Nominal through `SCN-08` Machine Offline) via `api.scenarios.list()`.
+  - Built comprehensive Scenario Preview card detailing target asset, scenario ID, failure mechanism, command safety guard ("Preset Enforced — No Arbitrary Injection"), estimated duration, current machine operating state, and RBAC authorization requirement.
+  - Implemented two-step modal confirmation workflow for dispatching scenarios to prevent accidental double-clicks or accidental triggering via dropdown selection changes.
+  - Provided quick "Select Baseline (SCN-01)" action button to rapidly reset machine to nominal healthy operation.
+  - Enforced strict client and backend RBAC: `RoleGate` restricts dispatch mutation to `ADMIN` and `MAINTENANCE_ENGINEER`; unauthorized `OPERATOR` users are provided with read-only observation mode with disabled buttons.
+  - Surfaced backend RFC 7807 problem details (403 Forbidden, 404 Machine Not Found, 409/422 Unsafe parameter) gracefully within confirmation modal and toast notifications.
+  - Tracked recent session command acknowledgments in an audit table displaying Command ID, target machine, scenario code, status (`ACCEPTED`), authorizing user, timestamp, and server acknowledgment message.
+- **Acceptance:** All 20 task test requirements satisfied; 11 new Vitest unit and integration tests passing; full frontend suite (108 tests across 12 files) passing; TypeScript `tsc --noEmit` and Vite production build passing cleanly; all backend scenario command-guard tests (7 passed) passing; zero modification to ML models, calibration, threshold ($t^*=0.160$), drift logic, or test data.
+- **Tests:** `dashboard/tests/scenarioControl.test.tsx` (11 tests), `tests/api/test_auth.py` (`TestCommandGuardAndScenarios`, 7 tests).
 - **Status:** DONE
 
 ## PHASE 6 — MLOps
