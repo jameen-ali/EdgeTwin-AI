@@ -17,6 +17,7 @@ export interface PredictionPanelProps {
   topFactors?: FeatureContribution[] | null;
   recommendation?: MaintenanceRecommendation | null;
   isLoading?: boolean;
+  onScheduleMaintenance?: () => void;
 }
 
 export const PredictionPanel: React.FC<PredictionPanelProps> = ({
@@ -29,6 +30,7 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({
   topFactors,
   recommendation,
   isLoading = false,
+  onScheduleMaintenance,
 }) => {
   const isElevated = failureProbability !== null && failureProbability > 0.16;
   const normRisk = (riskBand || "LOW").toUpperCase();
@@ -272,7 +274,12 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({
         <FeatureContributions factors={topFactors} />
 
         {/* System Recommendation */}
-        {recommendation && <RecommendationPanel recommendation={recommendation} />}
+        {recommendation && (
+          <RecommendationPanel
+            recommendation={recommendation}
+            onScheduleMaintenance={onScheduleMaintenance}
+          />
+        )}
       </div>
       )}
     </Card>

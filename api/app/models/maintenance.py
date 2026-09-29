@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from api.app.db.base import Base
 
 if TYPE_CHECKING:
+    from api.app.models.alert import AlertRecord
     from api.app.models.machine import MachineRecord
 
 
@@ -32,6 +33,12 @@ class MaintenanceRecord(Base):
         String(32),
         ForeignKey("machines.machine_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
+    )
+    alert_id: Mapped[int | None] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("alerts.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     event_type: Mapped[str] = mapped_column(
@@ -52,4 +59,7 @@ class MaintenanceRecord(Base):
     # Relationships
     machine: Mapped["MachineRecord"] = relationship(
         "MachineRecord", back_populates="maintenance_events"
+    )
+    alert: Mapped["AlertRecord | None"] = relationship(
+        "AlertRecord", back_populates="maintenance_events"
     )

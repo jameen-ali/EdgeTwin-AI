@@ -1,15 +1,20 @@
 import React from "react";
-import { AlertCircle, CheckCircle2, AlertTriangle, ShieldAlert, Cpu } from "lucide-react";
+import { AlertCircle, CheckCircle2, AlertTriangle, ShieldAlert, Cpu, Wrench } from "lucide-react";
 import { MaintenanceRecommendation } from "../../types/prediction";
+import { Button } from "../common/Button";
+import { RoleGate } from "../common/RoleGate";
+import { PRIVILEGED_ROLES } from "../../utils/rbac";
 
 export interface RecommendationPanelProps {
   recommendation?: MaintenanceRecommendation | null;
   emptyMessage?: string;
+  onScheduleMaintenance?: () => void;
 }
 
 export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
   recommendation,
   emptyMessage = "No active system recommendations.",
+  onScheduleMaintenance,
 }) => {
   if (!recommendation) {
     return (
@@ -159,6 +164,21 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
           </span>
         </div>
       </div>
+
+      {onScheduleMaintenance && (
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "var(--space-2)" }}>
+          <RoleGate allowedRoles={PRIVILEGED_ROLES}>
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Wrench size={12} />}
+              onClick={onScheduleMaintenance}
+            >
+              Schedule Maintenance
+            </Button>
+          </RoleGate>
+        </div>
+      )}
     </div>
   );
 };

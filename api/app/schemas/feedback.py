@@ -54,3 +54,12 @@ class FeedbackDTO(BaseModel):
     created_at: datetime = Field(..., description="Feedback creation timestamp")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class FeedbackListResponse(BaseModel):
+    """Bounded paginated list of feedback records."""
+
+    items: list[FeedbackDTO] = Field(..., description="List of feedback records")
+    total: int = Field(..., description="Total matching feedback records")
+    limit: int = Field(..., description="Applied pagination limit")
+    offset: int = Field(..., description="Applied pagination offset")

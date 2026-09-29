@@ -12,14 +12,19 @@ from api.app.db.session import get_db
 from api.app.models.user import UserRecord
 from api.app.schemas.alert import AlertListResponse
 from api.app.schemas.common import ProblemDetails
-from api.app.schemas.feedback import FeedbackCreateRequest, FeedbackDTO
+from api.app.schemas.feedback import FeedbackCreateRequest, FeedbackDTO, FeedbackListResponse
 from api.app.schemas.machine import MachineDetailResponse, MachineListResponse
-from api.app.schemas.maintenance import MaintenanceListResponse
+from api.app.schemas.maintenance import (
+    MaintenanceCreateRequest,
+    MaintenanceDTO,
+    MaintenanceListResponse,
+)
 from api.app.schemas.prediction import PredictionListResponse
 from api.app.schemas.telemetry import TelemetryListResponse
 from api.app.schemas.twin import TwinHistoryResponse, TwinStateDTO
 from api.app.security.audit import log_security_event
-from api.app.security.deps import get_current_user
+from api.app.security.deps import get_current_user, require_roles
+from api.app.security.roles import PRIVILEGED_MAINTENANCE_ROLES
 from api.app.services.alert_service import AlertService
 from api.app.services.feedback_service import FeedbackService
 from api.app.services.machine_service import MachineService
@@ -282,6 +287,48 @@ def get_machine_maintenance(
 
 
 @router.post(
+    "/{machine_id}/maintenance",
+    response_model=MaintenanceDTO,
+    status_code=status.HTTP_201_CREATED,
+    summary="Schedule machine maintenance / work order (Privileged)",
+    description="Create or schedule a maintenance event or work order for a machine. Requires Maintenance Engineer or Admin role.",
+    responses={
+        201: {"model": MaintenanceDTO, "description": "Maintenance event created"},
+        400: {"model": ProblemDetails, "description": "Bad request or mismatched alert machine"},
+        401: {"model": ProblemDetails, "description": "Unauthenticated"},
+        403: {"model": ProblemDetails, "description": "Forbidden"},
+        404: {"model": ProblemDetails, "description": "Machine or linked alert not found"},
+        422: {"model": ProblemDetails, "description": "Validation error"},
+    },
+)
+def create_machine_maintenance(
+    payload: MaintenanceCreateRequest,
+    machine_id: MachineIdPath,
+    db: DbDep,
+    current_user: Annotated[UserRecord, Depends(require_roles(PRIVILEGED_MAINTENANCE_ROLES))],
+) -> MaintenanceDTO:
+    res = MaintenanceService.create_maintenance_event(
+        db=db,
+        machine_id=machine_id,
+        payload=payload,
+        actor=current_user.username,
+    )
+    log_security_event(
+        action="MAINTENANCE_CREATE",
+        user=current_user.username,
+        role=current_user.role,
+        target=str(res.id),
+        success=True,
+        details={
+            "machine_id": machine_id,
+            "event_type": payload.event_type,
+            "alert_id": payload.alert_id,
+        },
+    )
+    return res
+
+
+@router.post(
     "/{machine_id}/feedback",
     response_model=FeedbackDTO,
     status_code=status.HTTP_201_CREATED,
@@ -318,3 +365,28 @@ def submit_feedback(
         success=True,
     )
     return res
+
+
+@router.get(
+    "/{machine_id}/feedback",
+    response_model=FeedbackListResponse,
+    summary="Get machine feedback history",
+    description="Retrieve bounded operator/technician evaluation feedback history for a machine.",
+    responses={
+        401: {"model": ProblemDetails, "description": "Unauthenticated"},
+        404: {"model": ProblemDetails, "description": "Machine not found"},
+        422: {"model": ProblemDetails, "description": "Validation error"},
+    },
+)
+def get_machine_feedback(
+    machine_id: MachineIdPath,
+    db: DbDep,
+    limit: LimitQuery = 50,
+    offset: OffsetQuery = 0,
+) -> FeedbackListResponse:
+    return FeedbackService.get_feedback_by_machine(
+        db=db,
+        machine_id=machine_id,
+        limit=limit,
+        offset=offset,
+    )

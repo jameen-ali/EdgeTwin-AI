@@ -7,6 +7,10 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 ---
 ## 1. Current status
 - Discovery and research complete. Six core documents drafted (v0.1).
+- **[T-056]** S22 — Alerts + Maintenance Workflow & Feedback completed. Branch `feat/T-056-alerts-maintenance-feedback`. Implemented closed-loop operational workflows connecting AI risk detection to human acknowledgment, incident triage, maintenance event scheduling/work orders, and ground-truth operator feedback. Added `alert_id` foreign key with SQLite support to `maintenance_events` and Alembic migration `0003_add_alert_id_to_maintenance.py`. Implemented `MaintenanceService` with lifecycle state progression (`PLANNED` -> `IN_PROGRESS` -> `COMPLETED`/`CANCELLED`) and auto-timestamping. Enhanced `AlertService` with strict transition guards and `FeedbackService` with duplicate submission detection (409 Conflict). Added dedicated REST endpoints under `/api/v1/maintenance` and extended alerts/machine routes. Built frontend `AlertDetailModal`, `CreateWorkOrderModal` (with AI recommendation prefill), `UpdateWorkOrderModal`, and `OperatorFeedbackModal`. Enhanced `/alerts`, `/maintenance`, and `/machines/:id`. Enforced strict RBAC (`ADMIN`, `MAINTENANCE_ENGINEER`, `OPERATOR`). 14 new backend unit/integration tests, 11 new frontend integration tests. 230 API tests and 82 frontend tests pass cleanly. All ML invariants and held-out data remain 100% frozen.
+- **[T-054, T-055]** S21 — Digital Twin Visualization & Predictions/Explanations Panel completed. Branch `feat/T-054-T-055-digital-twin-predictions`.
+- **[T-053]** S20 — Machine Detail & Live Telemetry Monitoring completed. Branch `feat/T-053-machine-detail`.
+- **[T-052]** S19 — Real-Time Fleet Dashboard completed. Branch `feat/T-052-fleet-dashboard`.
 - **[T-043]** S17 — Wokwi Simulation Automation, CI Integration & Edge-to-Backend Verification completed. Branch `feat/T-043-T-044-wokwi-ci`. Implemented automated simulation harness (`simulation/wokwi_runner.py`) orchestrating native C++ firmware testing via host g++, Wokwi CLI execution with explicit prerequisite detection (without fabricating passes), and authoritative E2E edge-to-backend pipeline execution. Authored 10-stage integration procedure and troubleshooting guide in `docs/wokwi/integration_guide.md`. Configured deterministic, secret-safe GitHub Actions CI workflow in `.github/workflows/ci.yml` verifying linting, native firmware builds, pytest test suite, and gated Wokwi cloud simulation. Added 7 comprehensive E2E tests in `tests/integration/test_edge_e2e_pipeline.py` verifying nominal telemetry, all 4 hardware safety trips, offline buffer store-and-forward, and sensor dropout resilience. Verified 13 native C++ firmware unit tests, 6 runner tests, 7 E2E tests. Total test suite: 588 passed, 1 skipped. Ruff and Black 100% clean across 129 files. Zero test set leakage.
 - **[T-041, T-042]** S16 — ESP32 Firmware v1/v2 Integration & Verification completed. Branch `feat/T-041-T-042-firmware-v1-v2`. Integrated ESP32 firmware with DHT22, potentiometer, MPU6050, and trip indicator LED. Coupled process equations with 5-state FSM (`STOPPED`, `STARTING`, `RUNNING`, `DEGRADING`, `TRIPPED`). Enforced 4 deterministic safety trips (DeltaT > 45 C, Current > 45 A, Vibration > 15 mm/s, sustained overload >= 32 A for 10 s). Tripped state de-energizes machine (RPM=0, Torque=0, Current=0, LED=ON, trip latched). Bounded 50-message FIFO ring buffer handles offline queuing and flushes on reconnect without blocking safety loop. Implemented structured command processor (`edge/command.cpp`) rejecting malformed JSON, code injection, and trip bypass. Configured QoS 1 publishing and retained LWT on `edgetwin/v1/{machine_id}/status`, integrated with Digital Twin `mark_offline`. Verified with 13 native C++ unit tests and 19 pytest contract/integration tests. 575 passed, 1 skipped.
 
@@ -29,6 +33,88 @@ Last updated: 2026-09-24 (discovery phase, no code written yet)
 - **[T-030, T-031]** FastAPI backend foundation and database schema with Alembic migrations implemented in `api/`. Clean layered structure (config, db, models, schemas, routes, migrations). 8 domain models mapped with SQLAlchemy 2.0 (`machines`, `telemetry`, `predictions`, `twin_snapshots`, `alerts`, `feedback`, `maintenance_events`, `model_versions`). Alembic version `0001_initial_schema` creates all tables, foreign keys, unique constraints, and time-series compound indexes. Endpoints `/health` and `/ready` provide liveness/readiness probes. RFC 7807 problem details error handling and environment-driven CORS. Multi-stage `Dockerfile` and updated `docker-compose.yml` (PostgreSQL 16 + Mosquitto + API). 24 new tests in `tests/api/`. Total 369 passed, 1 skipped.
 - **[T-002]** BLOCKED (dataset provenance not yet provided by user).
 - Waiting on: (a) dataset provenance from the user, (b) UI reference website (only needed at T-050).
+
+---
+
+## S22 — T-056 Alerts + Maintenance Workflow & Feedback (2026-09-29)
+
+### Task completion
+- **Status:** DONE (T-056)
+- **Branch:** `feat/T-056-alerts-maintenance-feedback`
+- **Base Commit:** `bd61836` (`feat(frontend): add digital twin visualization and prediction explanations`)
+- **Files created:**
+  - `api/migrations/versions/0003_add_alert_id_to_maintenance.py`
+  - `api/app/routes/maintenance.py`
+  - `tests/api/test_alerts_maintenance_feedback.py`
+  - `dashboard/src/types/maintenance.ts`
+  - `dashboard/src/types/feedback.ts`
+  - `dashboard/src/components/alerts/AlertDetailModal.tsx`
+  - `dashboard/src/components/maintenance/CreateWorkOrderModal.tsx`
+  - `dashboard/src/components/maintenance/UpdateWorkOrderModal.tsx`
+  - `dashboard/src/components/feedback/OperatorFeedbackModal.tsx`
+  - `dashboard/tests/alertsWorkflow.test.tsx`
+  - `docs/sessions/S22_report.md`
+- **Files modified:**
+  - `api/app/main.py`
+  - `api/app/models/alert.py`
+  - `api/app/models/maintenance.py`
+  - `api/app/routes/__init__.py`
+  - `api/app/routes/alerts.py`
+  - `api/app/routes/machines.py`
+  - `api/app/schemas/feedback.py`
+  - `api/app/schemas/maintenance.py`
+  - `api/app/services/alert_service.py`
+  - `api/app/services/feedback_service.py`
+  - `api/app/services/maintenance_service.py`
+  - `dashboard/src/api/client.ts`
+  - `dashboard/src/types/alert.ts`
+  - `dashboard/src/pages/AlertsPage.tsx`
+  - `dashboard/src/pages/MaintenancePage.tsx`
+  - `dashboard/src/pages/MachineDetailPage.tsx`
+  - `dashboard/src/components/machine/PredictionPanel.tsx`
+  - `dashboard/src/components/machine/RecommendationPanel.tsx`
+  - `dashboard/tests/dashboard.test.tsx`
+  - `tests/api/test_migrations.py`
+  - `tasks.md`
+  - `memory.md`
+
+### Architecture & Key Decisions
+1. **Database Schema Extension:**
+   - Extended `maintenance_events` table with nullable `alert_id` foreign key referencing `alerts.id` (`ondelete="SET NULL"`).
+   - In SQLite, BigInteger foreign keys require `.with_variant(Integer, "sqlite")`.
+   - Created Alembic migration `0003_add_alert_id_to_maintenance.py` using `batch_alter_table` for SQLite foreign key compatibility. Full upgrade/downgrade/upgrade verified.
+2. **Alert Lifecycle & Guardrails:**
+   - Authoritative states: `OPEN`, `ACKNOWLEDGED`, `RESOLVED`.
+   - Transitions: `OPEN` -> `ACKNOWLEDGED` -> `RESOLVED`.
+   - Attempting to transition already `RESOLVED` alerts back to `OPEN` or `ACKNOWLEDGED` rejects with `400 Bad Request`.
+3. **Maintenance Event / Work Order Lifecycle:**
+   - Event types: `INSPECTION`, `PREVENTIVE`, `CORRECTIVE`, `CALIBRATION`, `OVERHAUL`.
+   - Statuses: `PLANNED` -> `IN_PROGRESS` -> `COMPLETED` / `CANCELLED`.
+   - Automatic timestamping of `started_at` when transitioned to `IN_PROGRESS` and `completed_at` when transitioned to `COMPLETED`.
+   - Strict validation: Machine existence, event type enum, status enum, and linked alert existence + machine consistency checks (rejects with 400/404).
+4. **Operator Feedback & Duplicate Prevention:**
+   - Outcomes: `CONFIRMED`, `FALSE_ALARM`, `INCONCLUSIVE`.
+   - Added duplicate feedback detection: submitting duplicate feedback for the same machine and alert triggers `409 Conflict`.
+   - Ground-truth data collection for future MLOps drift/retraining analysis. Retraining is NOT triggered automatically.
+5. **RBAC Rules:**
+   - `ADMIN` & `MAINTENANCE_ENGINEER`: Acknowledge alerts, resolve alerts, create and update maintenance work orders, submit operator feedback.
+   - `OPERATOR`: View telemetry, digital twin, alerts, maintenance; submit operator feedback. Mutation of alert/maintenance status is forbidden (403 Forbidden / RoleGate).
+6. **Frontend Integration:**
+   - `AlertDetailModal`: Full incident triage context, trigger conditions, TreeSHAP feature attributions, acknowledge/resolve actions, one-click work order creation, and feedback recording.
+   - `CreateWorkOrderModal`: Prefill from active alert or AI recommendation (action code, priority, component, engineering reason) with manual user review and human confirmation. Double-click submission prevention.
+   - `UpdateWorkOrderModal`: Modal to transition status, add resolution notes, and assign technician.
+   - `OperatorFeedbackModal`: Record ground-truth outcome, maintenance performed toggle, notes, with non-retraining governance disclaimer.
+   - `MachineDetailPage`: Added "Operational Activity" tab/section displaying machine-specific active alerts, scheduled/completed maintenance, and feedback history.
+   - AI `RecommendationPanel`: "Schedule Work Order" button opens prefilled work order modal.
+
+### Verification Highlights [MEASURED]
+1. **Frontend Vitest Suite:** 82 passed across 9 test files (including 11 in `alertsWorkflow.test.tsx`).
+2. **Frontend Type Check:** `npm run lint` (`tsc --noEmit`) passes with 0 errors.
+3. **Frontend Production Build:** `npm run build` succeeds cleanly in 3.81s with 0 errors.
+4. **Backend API Test Suite:** 230 passed across all API tests (including 14 in `test_alerts_maintenance_feedback.py`).
+5. **Alembic Migrations:** Clean upgrade/downgrade/upgrade lifecycle verified across all 3 revisions.
+6. **Code Quality:** `ruff check api tests` (0 errors), `black --check api tests` (0 reformats), `git diff --check` (0 issues).
+7. **ML Invariants & Data Trust:** Zero changes to ML models ($t^* = 0.16$, XGBoost champion, Isolation Forest, TreeSHAP, calibration), zero access to held-out data `data/test/`.
 
 ---
 

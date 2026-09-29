@@ -13,7 +13,13 @@ import {
   PredictionRecord,
   normalizeMachine,
 } from "../types/machine";
-import { AlertItem } from "../types/alert";
+import { AlertItem, AlertAcknowledgePayload } from "../types/alert";
+import {
+  MaintenanceItem,
+  MaintenanceCreatePayload,
+  MaintenanceUpdatePayload,
+} from "../types/maintenance";
+import { FeedbackItem, FeedbackCreatePayload } from "../types/feedback";
 import { ScenarioSummary } from "../types/scenario";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -233,12 +239,25 @@ export const api = {
   },
 
   alerts: {
-    list: async (params?: { machine_id?: string; severity?: string; active_only?: boolean; limit?: number }): Promise<AlertItem[]> => {
+    list: async (params?: {
+      machine_id?: string;
+      severity?: string;
+      status?: string;
+      acknowledged?: boolean;
+      active_only?: boolean;
+      limit?: number;
+      offset?: number;
+    }): Promise<AlertItem[]> => {
       const searchParams = new URLSearchParams();
       if (params?.machine_id) searchParams.append("machine_id", params.machine_id);
       if (params?.severity) searchParams.append("severity", params.severity);
-      if (params?.active_only !== undefined) searchParams.append("active_only", String(params.active_only));
+      if (params?.status) searchParams.append("status", params.status);
+      if (params?.acknowledged !== undefined) searchParams.append("acknowledged", String(params.acknowledged));
+      if (params?.active_only !== undefined && params?.status === undefined) {
+        searchParams.append("status", "OPEN");
+      }
       if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
 
       const queryStr = searchParams.toString();
       const res = await request<AlertItem[] | { items: AlertItem[]; total: number }>(
@@ -252,10 +271,140 @@ export const api = {
       return [];
     },
 
-    acknowledge: (alertId: number): Promise<{ message: string }> => {
-      return request<{ message: string }>(`/alerts/${alertId}/acknowledge`, {
-        method: "POST",
+    get: (alertId: number): Promise<AlertItem> => {
+      return request<AlertItem>(`/alerts/${alertId}`, {
+        method: "GET",
       });
+    },
+
+    acknowledge: (alertId: number, payload?: AlertAcknowledgePayload): Promise<AlertItem> => {
+      return request<AlertItem>(`/alerts/${alertId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: "ACKNOWLEDGED",
+          notes: payload?.notes,
+          resolved_by: payload?.resolved_by,
+        }),
+      });
+    },
+
+    resolve: (alertId: number, payload?: AlertAcknowledgePayload): Promise<AlertItem> => {
+      return request<AlertItem>(`/alerts/${alertId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: "RESOLVED",
+          notes: payload?.notes,
+          resolved_by: payload?.resolved_by,
+        }),
+      });
+    },
+  },
+
+  maintenance: {
+    list: async (params?: {
+      machine_id?: string;
+      status?: string;
+      event_type?: string;
+      limit?: number;
+      offset?: number;
+    }): Promise<MaintenanceItem[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.machine_id) searchParams.append("machine_id", params.machine_id);
+      if (params?.status) searchParams.append("status", params.status);
+      if (params?.event_type) searchParams.append("event_type", params.event_type);
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+
+      const queryStr = searchParams.toString();
+      const res = await request<MaintenanceItem[] | { items: MaintenanceItem[]; total: number }>(
+        `/maintenance${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: MaintenanceItem[] }).items)) {
+        return (res as { items: MaintenanceItem[] }).items;
+      }
+      return [];
+    },
+
+    get: (id: number): Promise<MaintenanceItem> => {
+      return request<MaintenanceItem>(`/maintenance/${id}`, {
+        method: "GET",
+      });
+    },
+
+    create: (payload: MaintenanceCreatePayload): Promise<MaintenanceItem> => {
+      return request<MaintenanceItem>("/maintenance", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    update: (id: number, payload: MaintenanceUpdatePayload): Promise<MaintenanceItem> => {
+      return request<MaintenanceItem>(`/maintenance/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    getByMachine: async (
+      machineId: string,
+      params?: { status?: string; limit?: number; offset?: number }
+    ): Promise<MaintenanceItem[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.status) searchParams.append("status", params.status);
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+
+      const queryStr = searchParams.toString();
+      const res = await request<MaintenanceItem[] | { items: MaintenanceItem[]; total: number }>(
+        `/machines/${encodeURIComponent(machineId)}/maintenance${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: MaintenanceItem[] }).items)) {
+        return (res as { items: MaintenanceItem[] }).items;
+      }
+      return [];
+    },
+
+    createForMachine: (
+      machineId: string,
+      payload: Omit<MaintenanceCreatePayload, "machine_id">
+    ): Promise<MaintenanceItem> => {
+      return request<MaintenanceItem>(`/machines/${encodeURIComponent(machineId)}/maintenance`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+  },
+
+  feedback: {
+    submit: (machineId: string, payload: FeedbackCreatePayload): Promise<FeedbackItem> => {
+      return request<FeedbackItem>(`/machines/${encodeURIComponent(machineId)}/feedback`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    getByMachine: async (
+      machineId: string,
+      params?: { limit?: number; offset?: number }
+    ): Promise<FeedbackItem[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+
+      const queryStr = searchParams.toString();
+      const res = await request<FeedbackItem[] | { items: FeedbackItem[]; total: number }>(
+        `/machines/${encodeURIComponent(machineId)}/feedback${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: FeedbackItem[] }).items)) {
+        return (res as { items: FeedbackItem[] }).items;
+      }
+      return [];
     },
   },
 

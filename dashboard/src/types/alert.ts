@@ -13,6 +13,7 @@ export interface AlertItem {
   rule_id?: string;
   alert_type?: string;
   message: string;
+  trigger_conditions?: Record<string, unknown> | null;
   created_at?: string;
   triggered_at?: string;
   acknowledged_at?: string | null;
@@ -21,4 +22,10 @@ export interface AlertItem {
   resolved_by?: string | null;
   top_contributing_factor?: string | null;
   top_factors?: Array<{ factor?: string; feature?: string; shap_value?: number; contribution?: number }> | null;
+}
+
+export interface AlertAcknowledgePayload {
+  status?: "ACKNOWLEDGED" | "RESOLVED" | string;
+  resolved_by?: string | null;
+  notes?: string | null;
 }

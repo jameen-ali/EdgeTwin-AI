@@ -18,6 +18,7 @@ from api.app.db.base import Base
 if TYPE_CHECKING:
     from api.app.models.feedback import FeedbackRecord
     from api.app.models.machine import MachineRecord
+    from api.app.models.maintenance import MaintenanceRecord
 
 
 class AlertRecord(Base):
@@ -55,4 +56,7 @@ class AlertRecord(Base):
     machine: Mapped["MachineRecord"] = relationship("MachineRecord", back_populates="alerts")
     feedbacks: Mapped[list["FeedbackRecord"]] = relationship(
         "FeedbackRecord", back_populates="alert", cascade="all, delete-orphan"
+    )
+    maintenance_events: Mapped[list["MaintenanceRecord"]] = relationship(
+        "MaintenanceRecord", back_populates="alert"
     )

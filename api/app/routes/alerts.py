@@ -77,6 +77,25 @@ def list_alerts(
     )
 
 
+@router.get(
+    "/{alert_id}",
+    response_model=AlertDTO,
+    summary="Get alert details",
+    description="Retrieve full details for an alert by sequence ID.",
+    responses={
+        401: {"model": ProblemDetails, "description": "Unauthenticated"},
+        404: {"model": ProblemDetails, "description": "Alert not found"},
+        422: {"model": ProblemDetails, "description": "Validation error"},
+    },
+)
+def get_alert(
+    alert_id: Annotated[int, Path(ge=1, description="Alert sequence ID")],
+    db: DbDep,
+    current_user: Annotated[UserRecord, Depends(get_current_user)] = None,  # type: ignore[assignment]
+) -> AlertDTO:
+    return AlertService.get_alert_by_id(db=db, alert_id=alert_id)
+
+
 @router.patch(
     "/{alert_id}",
     response_model=AlertDTO,

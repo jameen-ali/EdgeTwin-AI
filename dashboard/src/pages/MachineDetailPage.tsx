@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Cpu, ArrowLeft, RefreshCw, BarChart3, Table as TableIcon } from "lucide-react";
+import {
+  Cpu,
+  ArrowLeft,
+  RefreshCw,
+  BarChart3,
+  Table as TableIcon,
+  Wrench,
+  MessageSquare,
+  Plus,
+  AlertTriangle,
+} from "lucide-react";
 import { MachineHeader } from "../components/machine/MachineHeader";
 import { DigitalTwinView } from "../components/machine/DigitalTwinView";
 import { PredictionPanel } from "../components/machine/PredictionPanel";
@@ -12,12 +22,21 @@ import { LoadingState } from "../components/common/LoadingState";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { Button } from "../components/common/Button";
+import { Card } from "../components/common/Card";
 import { Select } from "../components/common/Select";
+import { RoleGate } from "../components/common/RoleGate";
 import { MachineDetail, TelemetryPoint, TwinState } from "../types/machine";
 import { PredictionRecord } from "../types/prediction";
+import { AlertItem } from "../types/alert";
+import { MaintenanceItem } from "../types/maintenance";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useTwinWebSocket } from "../hooks/useTwinWebSocket";
+import { PRIVILEGED_ROLES } from "../utils/rbac";
+import { CreateWorkOrderModal } from "../components/maintenance/CreateWorkOrderModal";
+import { UpdateWorkOrderModal } from "../components/maintenance/UpdateWorkOrderModal";
+import { AlertDetailModal } from "../components/alerts/AlertDetailModal";
+import { OperatorFeedbackModal } from "../components/feedback/OperatorFeedbackModal";
 
 const MAX_CHART_POINTS = 100;
 
@@ -35,6 +54,25 @@ export const MachineDetailPage: React.FC = () => {
   const [pointLimit, setPointLimit] = useState<number>(50);
   const [activeTab, setActiveTab] = useState<"charts" | "table">("charts");
   const [predictionRecord, setPredictionRecord] = useState<PredictionRecord | null>(null);
+
+  // Operational State (S22: Alerts, Maintenance, Feedback)
+  const [machineAlerts, setMachineAlerts] = useState<AlertItem[]>([]);
+  const [machineMaintenance, setMachineMaintenance] = useState<MaintenanceItem[]>([]);
+  const [isCreateWorkOrderOpen, setIsCreateWorkOrderOpen] = useState(false);
+  const [workOrderInitial, setWorkOrderInitial] = useState<{
+    eventType?: string;
+    description?: string;
+    alertId?: number | null;
+  }>({});
+  const [selectedAlert, setSelectedAlert] = useState<AlertItem | null>(null);
+  const [selectedMaint, setSelectedMaint] = useState<MaintenanceItem | null>(null);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   // Subscribe to machine-specific WebSocket stream
   const { twins, isConnected: isWsConnected } = useTwinWebSocket({
@@ -59,12 +97,16 @@ export const MachineDetailPage: React.FC = () => {
       setIsNotFound(false);
 
       try {
-        const [detailRes, telemRes] = await Promise.all([
+        const [detailRes, telemRes, alertsRes, maintRes] = await Promise.all([
           api.machines.getDetail(id),
           api.machines.getTelemetry(id, { limit: pointLimit }),
+          api.alerts.list({ machine_id: id, limit: 10 }).catch(() => [] as AlertItem[]),
+          api.maintenance.getByMachine(id, { limit: 10 }).catch(() => [] as MaintenanceItem[]),
         ]);
 
         setMachine(detailRes);
+        setMachineAlerts(alertsRes || []);
+        setMachineMaintenance(maintRes || []);
 
         // Backend orders telemetry `ts desc`, reverse for chronological time-series
         const chronPoints = [...(telemRes || [])].reverse();
@@ -404,6 +446,19 @@ export const MachineDetailPage: React.FC = () => {
               topFactors={topFactors}
               recommendation={recommendation}
               isLoading={isLoading}
+              onScheduleMaintenance={
+                recommendation
+                  ? () => {
+                      const isCritical = (recommendation.urgency || "").toUpperCase() === "CRITICAL";
+                      setWorkOrderInitial({
+                        eventType: isCritical ? "PART_REPLACEMENT" : "INSPECTION",
+                        description: `Action [${recommendation.action_code}]: ${recommendation.recommendation_text} (Target: ${recommendation.target_component}. Reason: ${recommendation.reason})`,
+                        alertId: machineAlerts.find((a) => a.status === "OPEN" || a.status === "ACTIVE")?.id || null,
+                      });
+                      setIsCreateWorkOrderOpen(true);
+                    }
+                  : undefined
+              }
             />
           </div>
 
@@ -546,6 +601,297 @@ export const MachineDetailPage: React.FC = () => {
           ) : (
             /* Raw Telemetry Observations Table */
             <RawTelemetryTable telemetry={telemetryHistory} />
+          )}
+
+          {/* S22: Operational Workflow Section: Alerts, Maintenance & Feedback */}
+          <div style={{ marginTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "var(--space-3)",
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
+                  Operational Workflow & Incident Triage
+                </h3>
+                <span style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+                  Traceable actions from AI risk alerts to scheduled work orders and ground-truth verification.
+                </span>
+              </div>
+
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<MessageSquare size={14} />}
+                  onClick={() => setIsFeedbackOpen(true)}
+                >
+                  Record Ground Truth
+                </Button>
+                <RoleGate allowedRoles={PRIVILEGED_ROLES}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus size={14} />}
+                    onClick={() => {
+                      setWorkOrderInitial({
+                        eventType: "INSPECTION",
+                        description: `Routine maintenance check for ${id}`,
+                      });
+                      setIsCreateWorkOrderOpen(true);
+                    }}
+                  >
+                    Schedule Work Order
+                  </Button>
+                </RoleGate>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))",
+                gap: "var(--space-4)",
+              }}
+            >
+              {/* Machine Alerts Card */}
+              <Card
+                title="Active & Recent Alerts"
+                subtitle={`${machineAlerts.length} alert(s) registered for ${id}`}
+              >
+                {machineAlerts.length === 0 ? (
+                  <EmptyState
+                    title="No alerts logged"
+                    description="This asset currently has no active or historical alarm conditions."
+                    icon={<AlertTriangle size={20} />}
+                  />
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                    {machineAlerts.slice(0, 5).map((a) => {
+                      const isAck = a.status === "ACKNOWLEDGED";
+                      const isCrit = a.severity === "CRITICAL";
+
+                      return (
+                        <div
+                          key={a.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "var(--space-3)",
+                            backgroundColor: "var(--color-surface-raised)",
+                            border: `1px solid ${isCrit ? "var(--color-danger-border)" : "var(--color-border-subtle)"}`,
+                            borderRadius: "var(--radius-md)",
+                            gap: "var(--space-3)",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  fontWeight: 700,
+                                  padding: "1px 5px",
+                                  borderRadius: "var(--radius-sm)",
+                                  backgroundColor: isCrit ? "var(--color-danger-subtle)" : "var(--color-warning-subtle)",
+                                  color: isCrit ? "var(--color-danger)" : "var(--color-warning)",
+                                }}
+                              >
+                                {a.severity}
+                              </span>
+                              <span className="text-mono" style={{ fontSize: "11px", fontWeight: 700 }}>
+                                ALT-{a.id}
+                              </span>
+                              <span style={{ fontSize: "11px", color: a.status === "RESOLVED" ? "var(--color-success)" : isAck ? "var(--color-info)" : "var(--color-warning)", fontWeight: 600 }}>
+                                [{a.status}]
+                              </span>
+                            </div>
+                            <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
+                              {a.message}
+                            </span>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSelectedAlert(a)}
+                            >
+                              Triage
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+
+              {/* Machine Maintenance Card */}
+              <Card
+                title="Maintenance History"
+                subtitle={`${machineMaintenance.length} work order(s) logged for ${id}`}
+              >
+                {machineMaintenance.length === 0 ? (
+                  <EmptyState
+                    title="No maintenance scheduled"
+                    description="No preventive or corrective work orders have been logged for this machine."
+                    icon={<Wrench size={20} />}
+                  />
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                    {machineMaintenance.slice(0, 5).map((m) => (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "var(--space-3)",
+                          backgroundColor: "var(--color-surface-raised)",
+                          border: "1px solid var(--color-border-subtle)",
+                          borderRadius: "var(--radius-md)",
+                          gap: "var(--space-3)",
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span className="text-mono" style={{ fontSize: "11px", fontWeight: 700 }}>
+                              MNT-{m.id}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: 700,
+                                padding: "1px 5px",
+                                borderRadius: "var(--radius-sm)",
+                                backgroundColor: "var(--color-surface)",
+                                color: m.status === "COMPLETED" ? "var(--color-success)" : "var(--color-warning)",
+                              }}
+                            >
+                              {m.status}
+                            </span>
+                            <span className="text-mono" style={{ fontSize: "10px", color: "var(--color-text-muted)" }}>
+                              {m.event_type}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
+                            {m.description}
+                          </span>
+                        </div>
+
+                        <RoleGate allowedRoles={PRIVILEGED_ROLES}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedMaint(m)}
+                          >
+                            Update
+                          </Button>
+                        </RoleGate>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          {/* Toast Notification */}
+          {toastMsg && (
+            <div
+              role="status"
+              style={{
+                position: "fixed",
+                bottom: "var(--space-6)",
+                right: "var(--space-6)",
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-accent)",
+                color: "var(--color-text-primary)",
+                padding: "var(--space-3) var(--space-4)",
+                borderRadius: "var(--radius-md)",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.5)",
+                zIndex: 100,
+                fontSize: "13px",
+                fontWeight: 500,
+              }}
+            >
+              {toastMsg}
+            </div>
+          )}
+
+          {/* Modals */}
+          {selectedAlert && (
+            <AlertDetailModal
+              isOpen={Boolean(selectedAlert)}
+              onClose={() => setSelectedAlert(null)}
+              alert={selectedAlert}
+              onAcknowledge={async (alertId, notes) => {
+                const updated = await api.alerts.acknowledge(alertId, { notes });
+                setMachineAlerts((prev) => prev.map((a) => (a.id === alertId ? updated : a)));
+                showToast(`Alert ALT-${alertId} acknowledged.`);
+              }}
+              onResolve={async (alertId, notes) => {
+                const updated = await api.alerts.resolve(alertId, { notes });
+                setMachineAlerts((prev) => prev.map((a) => (a.id === alertId ? updated : a)));
+                showToast(`Alert ALT-${alertId} resolved.`);
+              }}
+              onCreateWorkOrder={(alert) => {
+                setWorkOrderInitial({
+                  eventType: alert.severity === "CRITICAL" ? "PART_REPLACEMENT" : "INSPECTION",
+                  description: `Maintenance triggered by alert ALT-${alert.id}: ${alert.message}`,
+                  alertId: alert.id,
+                });
+                setIsCreateWorkOrderOpen(true);
+              }}
+              onSubmitFeedback={() => {
+                setIsFeedbackOpen(true);
+              }}
+            />
+          )}
+
+          <CreateWorkOrderModal
+            isOpen={isCreateWorkOrderOpen}
+            onClose={() => setIsCreateWorkOrderOpen(false)}
+            initialMachineId={id}
+            initialAlertId={workOrderInitial.alertId}
+            initialEventType={workOrderInitial.eventType}
+            initialDescription={workOrderInitial.description}
+            onSuccess={(created) => {
+              showToast(`Work order MNT-${created.id} scheduled for ${created.machine_id}.`);
+              loadMachineData(true);
+            }}
+          />
+
+          {selectedMaint && (
+            <UpdateWorkOrderModal
+              isOpen={Boolean(selectedMaint)}
+              onClose={() => setSelectedMaint(null)}
+              item={selectedMaint}
+              onSuccess={(updated) => {
+                showToast(`Work order MNT-${updated.id} updated (${updated.status}).`);
+                loadMachineData(true);
+              }}
+            />
+          )}
+
+          {id && (
+            <OperatorFeedbackModal
+              isOpen={isFeedbackOpen}
+              onClose={() => setIsFeedbackOpen(false)}
+              machineId={id}
+              alertId={machineAlerts.find((a) => a.status === "OPEN" || a.status === "ACTIVE")?.id || null}
+              predictionId={machine?.latest_prediction?.id || predictionRecord?.id || null}
+              predictedRiskBand={riskBand}
+              failureProbability={failureProbability}
+              onSuccess={(fb) => {
+                showToast(`Ground-truth feedback recorded for ${fb.machine_id}.`);
+              }}
+            />
           )}
         </>
       )}

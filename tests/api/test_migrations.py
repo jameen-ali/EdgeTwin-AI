@@ -53,6 +53,11 @@ def test_alembic_upgrade_and_downgrade():
         assert "role" in user_columns
         assert "is_active" in user_columns
 
+        maint_columns = {c["name"] for c in inspector.get_columns("maintenance_events")}
+        assert "alert_id" in maint_columns
+        assert "event_type" in maint_columns
+        assert "status" in maint_columns
+
         # 4. Run downgrade to base
         command.downgrade(alembic_cfg, "base")
 

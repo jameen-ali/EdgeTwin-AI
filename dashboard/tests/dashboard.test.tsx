@@ -265,7 +265,10 @@ describe("Fleet Dashboard (T-052)", () => {
 
     vi.spyOn(api.machines, "list").mockResolvedValue(mockMachines);
     vi.spyOn(api.alerts, "list").mockResolvedValue(mockAlerts);
-    const ackSpy = vi.spyOn(api.alerts, "acknowledge").mockResolvedValue({ message: "Acknowledged" });
+    const ackSpy = vi.spyOn(api.alerts, "acknowledge").mockResolvedValue({
+      ...mockAlerts[0],
+      status: "ACKNOWLEDGED",
+    });
 
     renderDashboard();
 

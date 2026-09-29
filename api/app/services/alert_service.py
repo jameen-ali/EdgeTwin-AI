@@ -122,6 +122,34 @@ class AlertService:
         )
 
     @staticmethod
+    def get_alert_by_id(db: Session, alert_id: int) -> AlertDTO:
+        """Retrieve a single alert by sequence ID."""
+        alert = db.execute(
+            select(AlertRecord).where(AlertRecord.id == alert_id)
+        ).scalar_one_or_none()
+
+        if alert is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Alert '{alert_id}' not found.",
+            )
+
+        return AlertDTO(
+            id=alert.id,
+            machine_id=alert.machine_id,
+            alert_type=alert.alert_type,
+            severity=alert.severity,
+            status=alert.status,
+            message=alert.message,
+            trigger_conditions=alert.trigger_conditions,
+            top_factors=alert.top_factors,
+            triggered_at=alert.triggered_at,
+            acknowledged_at=alert.acknowledged_at,
+            resolved_at=alert.resolved_at,
+            resolved_by=alert.resolved_by,
+        )
+
+    @staticmethod
     def acknowledge_alert(
         db: Session,
         alert_id: int,
@@ -142,6 +170,18 @@ class AlertService:
 
         now = datetime.now(UTC)
         norm_status = new_status.upper().strip()
+
+        if norm_status not in ("ACKNOWLEDGED", "RESOLVED"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid alert status '{new_status}'. Status must be 'ACKNOWLEDGED' or 'RESOLVED'.",
+            )
+
+        if alert.status == "RESOLVED":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Alert '{alert_id}' is already RESOLVED and cannot be transitioned to '{norm_status}'.",
+            )
 
         if norm_status == "RESOLVED":
             alert.status = "RESOLVED"
