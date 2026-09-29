@@ -41,7 +41,12 @@ Session S24 implemented Task **T-061: Retrain Pipeline, Champion/Challenger Gate
 
 ---
 
-## 6. Core Governance Invariants
+## 6. Final Commit
+`9c8b046` (`feat(mlops): implement automated retraining and model promotion gate`)
+
+---
+
+## 7. Core Governance Invariants
 The following non-negotiable data science invariants were maintained throughout implementation:
 1. **Held-Out Test Set Quarantine:** `data/test/` (9 machines, 1,484 rows) is strictly quarantined and was never touched or accessed. All comparisons and metrics are computed exclusively on `val.csv`.
 2. **Frozen Feature Contract:** Exactly 14 features (10 raw sensors + `Machine_Type` + 3 physics-derived: `Delta_T_C`, `Apparent_Power_VA`, `Mech_Power_W`).
@@ -53,7 +58,7 @@ The following non-negotiable data science invariants were maintained throughout 
 
 ---
 
-## 7. Dataset Assembly & Test Isolation
+## 8. Dataset Assembly & Test Isolation
 - **Dataset Assembly:** `mlops/retrain.py::assemble_retrain_dataset`
   - Loads `data/interim/splits/train.csv` (6,897 rows, 42 machines) and `data/interim/splits/val.csv` (1,619 rows, 9 machines).
   - Computes deterministic SHA-256 checksums on both input files prior to feature derivation.
@@ -65,7 +70,7 @@ The following non-negotiable data science invariants were maintained throughout 
 
 ---
 
-## 8. Retraining Architecture
+## 9. Retraining Architecture
 - **Classifier:** `XGBClassifier` configured with identical champion parameters (learning_rate=0.05, max_depth=6, n_estimators=300, subsample=0.8, colsample_bytree=0.8, scale_pos_weight=8.11, seed=42).
 - **Probability Calibration:** Post-hoc Platt/Sigmoid scaling fitted on `val.csv`.
 - **Validation Evaluation:** Evaluated on calibrated probabilities against fixed threshold $t^* = 0.160$:
@@ -81,7 +86,7 @@ The following non-negotiable data science invariants were maintained throughout 
 
 ---
 
-## 9. Promotion Gate & Rollback Lifecycle
+## 10. Promotion Gate & Rollback Lifecycle
 - **Promotion Gate Checks:** `mlops/promote.py::evaluate_promotion_gate`
   - **Hard Gate 1 (Recall Protection):** `challenger_recall >= champion_recall - 0.05`
   - **Hard Gate 2 (Precision Floor):** `challenger_precision >= 0.10`
@@ -102,7 +107,7 @@ The following non-negotiable data science invariants were maintained throughout 
 
 ---
 
-## 10. Audit Trail
+## 11. Audit Trail
 All lifecycle events are recorded in append-only JSON Lines format at `artifacts/retrain_audit.jsonl`:
 - `retrain_started`: timestamp, actor, train_sha256, val_sha256.
 - `retrain_completed`: timestamp, actor, challenger_version, run_id, val_recall, val_precision, val_pr_auc.
@@ -114,7 +119,7 @@ All lifecycle events are recorded in append-only JSON Lines format at `artifacts
 
 ---
 
-## 11. Backend REST API
+## 12. Backend REST API
 Exposed under `/api/v1/mlops`:
 - `POST /retrain`: Initiates retraining pipeline. Role: `ADMIN`. Returns 202 Accepted.
 - `GET /gate`: Evaluates promotion gate comparing champion and challenger. Role: `ADMIN`, `MAINTENANCE_ENGINEER`.
@@ -125,7 +130,7 @@ Exposed under `/api/v1/mlops`:
 
 ---
 
-## 12. Frontend Governance UI
+## 13. Frontend Governance UI
 Integrated into `/mlops` with tabbed navigation:
 - **Tab 1: Drift & Observability:** Real-time PSI/KS monitoring and operator feedback performance (T-060).
 - **Tab 2: Model Lifecycle & Governance:**
@@ -138,7 +143,7 @@ Integrated into `/mlops` with tabbed navigation:
 
 ---
 
-## 13. Automated Test Verification
+## 14. Automated Test Verification
 - **Backend Tests:**
   - `tests/mlops/test_retrain.py`: 26 tests (dataset assembly, checksums, leakage guard, test quarantine, training, audit log).
   - `tests/mlops/test_promote.py`: 16 tests (gate evaluations, recall protection, precision floor, contracts, promotion, rollback, audit logging).
