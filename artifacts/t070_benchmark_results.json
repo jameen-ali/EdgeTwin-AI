@@ -1,0 +1,619 @@
+{
+  "benchmark_name": "T-070 End-to-End Detection Latency & False-Alarm Benchmark",
+  "benchmark_version": "1.0.0",
+  "executed_at_utc": "2026-09-29 18:56:21 UTC",
+  "total_scenarios": 8,
+  "passed_scenarios": 8,
+  "failed_scenarios": 0,
+  "overall_detection_rate": 1.0,
+  "overall_false_alarm_rate": 0.0,
+  "operational_threshold_t_star": 0.16,
+  "model_version": "champion",
+  "aggregate_ingestion_latency": {
+    "min_ms": 6.611,
+    "median_ms": 6.851,
+    "mean_ms": 11.151,
+    "max_ms": 40.988,
+    "sample_count": 8
+  },
+  "aggregate_inference_latency": {
+    "min_ms": 46.972,
+    "median_ms": 49.577,
+    "mean_ms": 49.56,
+    "max_ms": 52.685,
+    "sample_count": 8
+  },
+  "aggregate_propagation_latency": {
+    "min_ms": 2.679,
+    "median_ms": 2.828,
+    "mean_ms": 3.035,
+    "max_ms": 4.539,
+    "sample_count": 8
+  },
+  "aggregate_total_latency": {
+    "min_ms": 53.583,
+    "median_ms": 56.558,
+    "mean_ms": 60.711,
+    "max_ms": 90.771,
+    "sample_count": 8
+  },
+  "scenarios": [
+    {
+      "scenario_id": "SCN-01",
+      "scenario_name": "Healthy Nominal Operation",
+      "scenario_file": "healthy_nominal.yaml",
+      "severity": "INFO",
+      "expected_behavior": "Steady-state healthy operation: health >= 80, LOW risk band, 0 CRITICAL/failure alerts.",
+      "duration_steps": 120,
+      "activation_step": null,
+      "activation_timestamp": null,
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:21",
+      "prediction_timestamp": "2026-09-29T18:56:25",
+      "alert_timestamp": null,
+      "twin_snapshot_timestamp": null,
+      "recovery_timestamp": null,
+      "detection_step_lag": 0,
+      "detection_latency_sim_s": 0.0,
+      "detection_latency_ms": 0.0,
+      "ingestion_latency": {
+        "min_ms": 5.41,
+        "median_ms": 6.204,
+        "mean_ms": 40.988,
+        "max_ms": 4177.887,
+        "sample_count": 120
+      },
+      "inference_latency": {
+        "min_ms": 44.386,
+        "median_ms": 48.643,
+        "mean_ms": 49.782,
+        "max_ms": 113.094,
+        "sample_count": 120
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.513,
+        "median_ms": 2.744,
+        "mean_ms": 4.539,
+        "max_ms": 211.494,
+        "sample_count": 120
+      },
+      "total_pipeline_latency": {
+        "min_ms": 50.252,
+        "median_ms": 54.885,
+        "mean_ms": 90.771,
+        "max_ms": 4229.874,
+        "sample_count": 120
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": null,
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        }
+      ],
+      "final_health_state": "HEALTHY",
+      "final_health_score": 99.37,
+      "final_risk_band": "LOW",
+      "final_failure_probability": 0.0104,
+      "final_anomaly_flag": false,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-02",
+      "scenario_name": "Heat Dissipation Failure",
+      "scenario_file": "heat_dissipation.yaml",
+      "severity": "CRITICAL",
+      "expected_behavior": "Thermal runaway detected via Delta T and p_fail >= 0.160; CRITICAL alert raised.",
+      "duration_steps": 120,
+      "activation_step": 30,
+      "activation_timestamp": "2026-01-01T00:00:30Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:32",
+      "prediction_timestamp": "2026-09-29T18:56:32",
+      "alert_timestamp": "2026-01-01T00:00:48",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:48",
+      "recovery_timestamp": null,
+      "detection_step_lag": 18,
+      "detection_latency_sim_s": 18.0,
+      "detection_latency_ms": 1067.709,
+      "ingestion_latency": {
+        "min_ms": 5.54,
+        "median_ms": 6.575,
+        "mean_ms": 6.918,
+        "max_ms": 28.281,
+        "sample_count": 120
+      },
+      "inference_latency": {
+        "min_ms": 44.563,
+        "median_ms": 48.147,
+        "mean_ms": 49.265,
+        "max_ms": 62.413,
+        "sample_count": 120
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.545,
+        "median_ms": 2.727,
+        "mean_ms": 2.809,
+        "max_ms": 3.732,
+        "sample_count": 120
+      },
+      "total_pipeline_latency": {
+        "min_ms": 50.906,
+        "median_ms": 54.547,
+        "mean_ms": 56.182,
+        "max_ms": 74.632,
+        "sample_count": 120
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": "CRITICAL_MACHINE_HEALTH",
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        },
+        {
+          "alert_type": "CRITICAL_MACHINE_HEALTH",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 86.8%) \u2014 ACT_INSPECT_COOLING: Elevated process temperature differential detected. Inspect heat dissipation system, cooling fluid flow, and heat exchanger fins.",
+          "triggered_at": "2026-01-01T00:00:48"
+        }
+      ],
+      "final_health_state": "CRITICAL",
+      "final_health_score": 35.14,
+      "final_risk_band": "CRITICAL",
+      "final_failure_probability": 0.8952,
+      "final_anomaly_flag": false,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-03",
+      "scenario_name": "Overstrain Failure",
+      "scenario_file": "overstrain.yaml",
+      "severity": "CRITICAL",
+      "expected_behavior": "Mechanical overload detected via elevated torque and power surge; CRITICAL alert raised.",
+      "duration_steps": 100,
+      "activation_step": 30,
+      "activation_timestamp": "2026-01-01T00:00:30Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:39",
+      "prediction_timestamp": "2026-09-29T18:56:39",
+      "alert_timestamp": "2026-01-01T00:00:59",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:59",
+      "recovery_timestamp": null,
+      "detection_step_lag": 29,
+      "detection_latency_sim_s": 29.0,
+      "detection_latency_ms": 1885.752,
+      "ingestion_latency": {
+        "min_ms": 5.442,
+        "median_ms": 6.617,
+        "mean_ms": 6.766,
+        "max_ms": 20.717,
+        "sample_count": 100
+      },
+      "inference_latency": {
+        "min_ms": 45.586,
+        "median_ms": 48.805,
+        "mean_ms": 51.12,
+        "max_ms": 208.007,
+        "sample_count": 100
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.585,
+        "median_ms": 2.763,
+        "mean_ms": 2.894,
+        "max_ms": 10.725,
+        "sample_count": 100
+      },
+      "total_pipeline_latency": {
+        "min_ms": 51.709,
+        "median_ms": 55.268,
+        "mean_ms": 57.886,
+        "max_ms": 214.498,
+        "sample_count": 100
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": "CRITICAL_MACHINE_HEALTH",
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        },
+        {
+          "alert_type": "CRITICAL_MACHINE_HEALTH",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 79.6%) \u2014 ACT_CHECK_MECHANICAL_OVERLOAD: Mechanical overstrain detected. Verify spindle torque load, feed rates, drive coupling alignment, and gearbox lubrication.",
+          "triggered_at": "2026-01-01T00:00:59"
+        }
+      ],
+      "final_health_state": "CRITICAL",
+      "final_health_score": 21.5,
+      "final_risk_band": "CRITICAL",
+      "final_failure_probability": 0.8916,
+      "final_anomaly_flag": true,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-04",
+      "scenario_name": "Power Failure and Safety Trip",
+      "scenario_file": "power_failure.yaml",
+      "severity": "CRITICAL",
+      "expected_behavior": "Electrical power surge and voltage sag trigger edge hardware safety trip and CRITICAL alert.",
+      "duration_steps": 90,
+      "activation_step": 30,
+      "activation_timestamp": "2026-01-01T00:00:30Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:45",
+      "prediction_timestamp": "2026-09-29T18:56:45",
+      "alert_timestamp": "2026-01-01T00:00:30",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:30",
+      "recovery_timestamp": null,
+      "detection_step_lag": 0,
+      "detection_latency_sim_s": 0.0,
+      "detection_latency_ms": 56.347,
+      "ingestion_latency": {
+        "min_ms": 5.74,
+        "median_ms": 6.535,
+        "mean_ms": 6.784,
+        "max_ms": 18.665,
+        "sample_count": 90
+      },
+      "inference_latency": {
+        "min_ms": 43.183,
+        "median_ms": 46.989,
+        "mean_ms": 47.319,
+        "max_ms": 58.704,
+        "sample_count": 90
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.484,
+        "median_ms": 2.684,
+        "mean_ms": 2.705,
+        "max_ms": 3.33,
+        "sample_count": 90
+      },
+      "total_pipeline_latency": {
+        "min_ms": 49.681,
+        "median_ms": 53.68,
+        "mean_ms": 54.103,
+        "max_ms": 66.597,
+        "sample_count": 90
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": "HARDWARE_SAFETY_TRIP",
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        },
+        {
+          "alert_type": "CRITICAL_MACHINE_HEALTH",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 89.9%) \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:30"
+        },
+        {
+          "alert_type": "HARDWARE_SAFETY_TRIP",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 89.9%) \u2014 ACT_EMERGENCY_INSPECT: Hardware safety trip triggered on edge controller. Immediate physical inspection and root-cause verification required before clearing interlock.",
+          "triggered_at": "2026-01-01T00:00:40"
+        }
+      ],
+      "final_health_state": "CRITICAL",
+      "final_health_score": 73.46,
+      "final_risk_band": "LOW",
+      "final_failure_probability": 0.0257,
+      "final_anomaly_flag": true,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-05",
+      "scenario_name": "Tool Wear Degradation",
+      "scenario_file": "tool_wear.yaml",
+      "severity": "WARNING",
+      "expected_behavior": "Tool wear exceeds 240 min operational threshold; MAINTENANCE_REQUIRED override alert raised.",
+      "duration_steps": 120,
+      "activation_step": 20,
+      "activation_timestamp": "2026-01-01T00:00:20Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:50",
+      "prediction_timestamp": "2026-09-29T18:56:50",
+      "alert_timestamp": "2026-01-01T00:01:01",
+      "twin_snapshot_timestamp": "2026-01-01T00:01:01",
+      "recovery_timestamp": null,
+      "detection_step_lag": 41,
+      "detection_latency_sim_s": 41.0,
+      "detection_latency_ms": 2313.792,
+      "ingestion_latency": {
+        "min_ms": 5.272,
+        "median_ms": 6.39,
+        "mean_ms": 6.611,
+        "max_ms": 17.171,
+        "sample_count": 120
+      },
+      "inference_latency": {
+        "min_ms": 42.273,
+        "median_ms": 45.794,
+        "mean_ms": 46.972,
+        "max_ms": 74.206,
+        "sample_count": 120
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.402,
+        "median_ms": 2.606,
+        "mean_ms": 2.679,
+        "max_ms": 4.206,
+        "sample_count": 120
+      },
+      "total_pipeline_latency": {
+        "min_ms": 48.035,
+        "median_ms": 52.12,
+        "mean_ms": 53.583,
+        "max_ms": 84.118,
+        "sample_count": 120
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": "MAINTENANCE_REQUIRED",
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        },
+        {
+          "alert_type": "CRITICAL_MACHINE_HEALTH",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 88.3%) \u2014 ACT_INSPECT_BEARINGS_VIBRATION: High mechanical vibration detected. Inspect rotational bearings, shaft runout, dynamic balance, and machine mounting rigidity.",
+          "triggered_at": "2026-01-01T00:01:01"
+        },
+        {
+          "alert_type": "MAINTENANCE_REQUIRED",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state MAINTENANCE_REQUIRED (Failure Probability: 32.1%) \u2014 ACT_REPLACE_TOOL: Cutting tool wear limit exceeded (240.1 min >= 240 min). Replace cutting tool insert and reset tool wear counter.",
+          "triggered_at": "2026-01-01T00:01:03"
+        }
+      ],
+      "final_health_state": "MAINTENANCE_REQUIRED",
+      "final_health_score": 40.48,
+      "final_risk_band": "CRITICAL",
+      "final_failure_probability": 0.8886,
+      "final_anomaly_flag": false,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-06",
+      "scenario_name": "Random Vibration Cluster",
+      "scenario_file": "random_vibration.yaml",
+      "severity": "CRITICAL",
+      "expected_behavior": "Sudden anomalous vibration and pressure shock detected; CRITICAL alert raised.",
+      "duration_steps": 80,
+      "activation_step": 30,
+      "activation_timestamp": "2026-01-01T00:00:30Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:56:57",
+      "prediction_timestamp": "2026-09-29T18:56:57",
+      "alert_timestamp": "2026-01-01T00:00:30",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:30",
+      "recovery_timestamp": null,
+      "detection_step_lag": 0,
+      "detection_latency_sim_s": 0.0,
+      "detection_latency_ms": 56.913,
+      "ingestion_latency": {
+        "min_ms": 5.517,
+        "median_ms": 6.854,
+        "mean_ms": 6.965,
+        "max_ms": 18.198,
+        "sample_count": 80
+      },
+      "inference_latency": {
+        "min_ms": 45.153,
+        "median_ms": 48.396,
+        "mean_ms": 49.969,
+        "max_ms": 115.266,
+        "sample_count": 80
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.561,
+        "median_ms": 2.753,
+        "mean_ms": 2.847,
+        "max_ms": 6.206,
+        "sample_count": 80
+      },
+      "total_pipeline_latency": {
+        "min_ms": 51.229,
+        "median_ms": 55.066,
+        "mean_ms": 56.934,
+        "max_ms": 124.114,
+        "sample_count": 80
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": "CRITICAL_MACHINE_HEALTH",
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        },
+        {
+          "alert_type": "CRITICAL_MACHINE_HEALTH",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state CRITICAL (Failure Probability: 89.4%) \u2014 ACT_INSPECT_BEARINGS_VIBRATION: High mechanical vibration detected. Inspect rotational bearings, shaft runout, dynamic balance, and machine mounting rigidity.",
+          "triggered_at": "2026-01-01T00:00:30"
+        }
+      ],
+      "final_health_state": "CRITICAL",
+      "final_health_score": 35.37,
+      "final_risk_band": "CRITICAL",
+      "final_failure_probability": 0.8984,
+      "final_anomaly_flag": false,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-07",
+      "scenario_name": "Sensor Dropout and Quality Marking",
+      "scenario_file": "sensor_dropout.yaml",
+      "severity": "WARNING",
+      "expected_behavior": "Missing sensor readings flagged with MISSING quality, gracefully imputed, health penalized to WARNING without failure risk false alarm.",
+      "duration_steps": 90,
+      "activation_step": 20,
+      "activation_timestamp": "2026-01-01T00:00:20Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:57:01",
+      "prediction_timestamp": "2026-09-29T18:57:02",
+      "alert_timestamp": "2026-01-01T00:00:20Z",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:20Z",
+      "recovery_timestamp": null,
+      "detection_step_lag": 0,
+      "detection_latency_sim_s": 0.0,
+      "detection_latency_ms": 55.354,
+      "ingestion_latency": {
+        "min_ms": 5.304,
+        "median_ms": 6.526,
+        "mean_ms": 6.693,
+        "max_ms": 20.96,
+        "sample_count": 90
+      },
+      "inference_latency": {
+        "min_ms": 44.592,
+        "median_ms": 47.878,
+        "mean_ms": 49.372,
+        "max_ms": 78.31,
+        "sample_count": 90
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.54,
+        "median_ms": 2.717,
+        "mean_ms": 2.803,
+        "max_ms": 4.245,
+        "sample_count": 90
+      },
+      "total_pipeline_latency": {
+        "min_ms": 50.799,
+        "median_ms": 54.346,
+        "mean_ms": 56.065,
+        "max_ms": 84.897,
+        "sample_count": 90
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": null,
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        }
+      ],
+      "final_health_state": "HEALTHY",
+      "final_health_score": 99.34,
+      "final_risk_band": "LOW",
+      "final_failure_probability": 0.011,
+      "final_anomaly_flag": false,
+      "final_sync_status": "LIVE",
+      "error": null
+    },
+    {
+      "scenario_id": "SCN-08",
+      "scenario_name": "Machine Offline and LWT",
+      "scenario_file": "machine_offline.yaml",
+      "severity": "INFO",
+      "expected_behavior": "Telemetry stream terminates; MQTT LWT OFFLINE received; Digital Twin sync status transitions to OFFLINE.",
+      "duration_steps": 40,
+      "activation_step": 10,
+      "activation_timestamp": "2026-01-01T00:00:09Z",
+      "first_telemetry_timestamp": "2026-01-01T00:00:00Z",
+      "ingestion_timestamp": "2026-09-29T18:57:07",
+      "prediction_timestamp": "2026-09-29T18:57:07",
+      "alert_timestamp": "2026-01-01T00:00:10Z",
+      "twin_snapshot_timestamp": "2026-01-01T00:00:10Z",
+      "recovery_timestamp": null,
+      "detection_step_lag": 0,
+      "detection_latency_sim_s": 0.0,
+      "detection_latency_ms": 1.68,
+      "ingestion_latency": {
+        "min_ms": 5.757,
+        "median_ms": 6.325,
+        "mean_ms": 7.482,
+        "max_ms": 17.733,
+        "sample_count": 10
+      },
+      "inference_latency": {
+        "min_ms": 46.139,
+        "median_ms": 47.671,
+        "mean_ms": 52.685,
+        "max_ms": 99.308,
+        "sample_count": 10
+      },
+      "alert_propagation_latency": {
+        "min_ms": 2.636,
+        "median_ms": 2.703,
+        "mean_ms": 3.008,
+        "max_ms": 5.319,
+        "sample_count": 10
+      },
+      "total_pipeline_latency": {
+        "min_ms": 52.722,
+        "median_ms": 54.063,
+        "mean_ms": 60.167,
+        "max_ms": 106.386,
+        "sample_count": 10
+      },
+      "detected": true,
+      "false_alarm": false,
+      "expected_alert": null,
+      "actual_alerts": [
+        {
+          "alert_type": "WARNING_ELEVATED_RISK",
+          "severity": "WARNING",
+          "status": "OPEN",
+          "message": "Machine MOT-1001 entered state WARNING \u2014 ACT_CHECK_ELECTRICAL: Electrical power anomaly detected. Inspect supply voltage balance, motor phase current draw, and power inverter drive stages.",
+          "triggered_at": "2026-01-01T00:00:00"
+        }
+      ],
+      "final_health_state": "OFFLINE",
+      "final_health_score": 99.35,
+      "final_risk_band": "LOW",
+      "final_failure_probability": 0.0108,
+      "final_anomaly_flag": false,
+      "final_sync_status": "OFFLINE",
+      "error": null
+    }
+  ]
+}

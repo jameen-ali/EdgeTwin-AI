@@ -379,10 +379,45 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 - **Status:** DONE
 
 
+### T-070 End-to-End Integration & Detection-Latency / False-Alarm Benchmark
+- **Goal:** Validate the complete EdgeTwin AI pipeline end-to-end across all 8 canonical simulation scenarios (`SCN-01` to `SCN-08`) and produce a reproducible, deterministic benchmark measuring detection latency ($T_4 - T_0$), backend ingestion latency ($T_2 - T_1$), ML inference & SHAP latency ($T_3 - T_2$), alert & Digital Twin propagation latency ($T_5 - T_4$), and false-alarm rates.
+- **Files:** `scripts/benchmark_t070.py`, `artifacts/t070_benchmark_results.json`, `tests/integration/test_t070_benchmark.py`.
+- **Depends:** T-035, T-022, T-034, T-061, T-063.
+- **Implementation:**
+  - Designed deterministic, reproducible benchmark harness (`scripts/benchmark_t070.py`) exercising the complete authoritative pipeline: Scenario Injection $\to$ Wire Telemetry $\to$ Ingest/Validation/DB $\to$ ML Inference/SHAP/Health $\to$ Digital Twin State & Snapshot $\to$ Alert Engine $\to$ Observability.
+  - Formulated strict high-resolution Measurement Contract capturing timestamps:
+    - $T_0$: Fault activation / scenario injection timestamp.
+    - $T_1$: First telemetry generated with fault condition.
+    - $T_2$: Telemetry accepted and persisted by backend (`received_at`).
+    - $T_3$: ML inference, calibrated risk, anomaly score, TreeSHAP attributions, and health score generated (`PredictionRecord.created_at`).
+    - $T_4$: Alert entity created (`AlertRecord.triggered_at`) or Digital Twin OFFLINE state recorded.
+    - $T_5$: Digital Twin snapshot persisted (`TwinSnapshotRecord`) and state updated.
+  - Measured live computational latencies across 740 total message steps:
+    - Ingestion Latency: mean = 11.15 ms (min = 6.61 ms, max = 40.99 ms).
+    - Inference Latency: mean = 49.56 ms (min = 46.97 ms, max = 52.69 ms).
+    - Twin Propagation: mean = 3.04 ms (min = 2.68 ms, max = 4.54 ms).
+    - Total Pipeline Latency: mean = 60.71 ms (min = 53.58 ms, max = 90.77 ms).
+  - Executed all 8 canonical scenarios:
+    1. `SCN-01` (Healthy Nominal, 120 steps): Zero false alarms in steady state ($p_{fail} = 0.0104 < 0.160$, health = 99.37, 0 CRITICAL alerts, false_alarm = False).
+    2. `SCN-02` (Heat Dissipation Failure, 120 steps): Progressive thermal breakdown detected at step 48 (18 ticks lag), critical alert raised, final health CRITICAL ($p_{fail} = 0.8952$).
+    3. `SCN-03` (Overstrain Failure, 100 steps): Mechanical overload detected at step 59 (29 ticks lag), critical alert raised, final health CRITICAL ($p_{fail} = 0.8916$).
+    4. `SCN-04` (Power Failure & Trip, 90 steps): Electrical surge detected immediately at step 30 (0 ticks lag), hardware safety trip `HARDWARE_SAFETY_TRIP` raised.
+    5. `SCN-05` (Tool Wear Degradation, 120 steps): Tool wear crosses 240 min at step 61, triggering Layer 4 operational override `MAINTENANCE_REQUIRED` (41 ticks lag).
+    6. `SCN-06` (Random Vibration Cluster, 80 steps): Sudden vibration/pressure shock detected immediately at step 30 (0 ticks lag), critical alert raised.
+    7. `SCN-07` (Sensor Dropout, 90 steps): Missing sensor values marked `MISSING`, gracefully imputed, health penalized to WARNING without failure risk false alarm.
+    8. `SCN-08` (Machine Offline, 40 steps): Disconnection and MQTT LWT status detected immediately at step 10 (0 ticks lag), twin transitions to `OFFLINE`.
+  - Exported structured JSON artifact to `artifacts/t070_benchmark_results.json`.
+  - Added 13 automated integration tests in `tests/integration/test_t070_benchmark.py` covering all scenario behaviors, detection latency math, missing timestamps, duplicate event rejection, and JSON serialization.
+  - Zero access to held-out test data (`data/test/`); ML models, calibration, threshold ($t^* = 0.160$), and health formulas strictly frozen.
+- **Acceptance:** All 8 canonical scenarios executed deterministically; overall detection rate = 100.0%; false-alarm rate = 0.0%; all 13 new integration tests pass; full test suite (726 backend tests, 118 frontend tests, 6 ML smoke tests) passes 100% green; ruff and black formatting checks 100% clean.
+- **Tests:** `tests/integration/test_t070_benchmark.py` (13 tests), `scripts/benchmark_t070.py`.
+- **Status:** DONE
+
+
 ## PHASE 7 — Verification and demo
 | ID | Goal | Depends | Status |
 |---|---|---|---|
-| T-070 | End-to-end test (virtual edge → alert) + **detection-latency / false-alarm benchmark** per scenario | T-035, T-022 | TODO |
+| T-070 | End-to-end test (virtual edge → alert) + **detection-latency / false-alarm benchmark** per scenario | T-035, T-022 | DONE |
 | T-071 | Second-dataset (AI4I 2020) pipeline run | T-012 | TODO |
 | T-072 | Demo script (2–3 min), seed data, offline fallback recording | T-070 | TODO |
 | T-073 | Final docs, README, evaluation report, limitations | all | TODO |
