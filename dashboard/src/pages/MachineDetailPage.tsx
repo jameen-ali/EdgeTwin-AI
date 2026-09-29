@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Cpu, ArrowLeft, RefreshCw, BarChart3, Table as TableIcon } from "lucide-react";
 import { MachineHeader } from "../components/machine/MachineHeader";
+import { DigitalTwinView } from "../components/machine/DigitalTwinView";
+import { PredictionPanel } from "../components/machine/PredictionPanel";
 import { MachineStatusSummary } from "../components/machine/MachineStatusSummary";
 import { TelemetryMetricGrid, TelemetrySignals } from "../components/machine/TelemetryMetricGrid";
 import { TelemetryChart, ChartSeries } from "../components/machine/TelemetryChart";
@@ -12,6 +14,7 @@ import { ErrorState } from "../components/common/ErrorState";
 import { Button } from "../components/common/Button";
 import { Select } from "../components/common/Select";
 import { MachineDetail, TelemetryPoint, TwinState } from "../types/machine";
+import { PredictionRecord } from "../types/prediction";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useTwinWebSocket } from "../hooks/useTwinWebSocket";
@@ -31,6 +34,7 @@ export const MachineDetailPage: React.FC = () => {
   const [isNotFound, setIsNotFound] = useState<boolean>(false);
   const [pointLimit, setPointLimit] = useState<number>(50);
   const [activeTab, setActiveTab] = useState<"charts" | "table">("charts");
+  const [predictionRecord, setPredictionRecord] = useState<PredictionRecord | null>(null);
 
   // Subscribe to machine-specific WebSocket stream
   const { twins, isConnected: isWsConnected } = useTwinWebSocket({
@@ -65,6 +69,18 @@ export const MachineDetailPage: React.FC = () => {
         // Backend orders telemetry `ts desc`, reverse for chronological time-series
         const chronPoints = [...(telemRes || [])].reverse();
         setTelemetryHistory(chronPoints);
+
+        // Optional non-destructive prediction fetch if latest_prediction or top_factors missing
+        if (!detailRes.latest_prediction?.top_factors) {
+          try {
+            const preds = await api.machines.getPredictions(id, { limit: 1 });
+            if (preds && preds.length > 0) {
+              setPredictionRecord(preds[0]);
+            }
+          } catch {
+            // Non-destructive fallback: explanation/prediction API failure does not break the machine page
+          }
+        }
       } catch (err: unknown) {
         if (err instanceof ApiError && err.status === 404) {
           setIsNotFound(true);
@@ -179,15 +195,15 @@ export const MachineDetailPage: React.FC = () => {
   const healthScore =
     currentTwin?.health_score !== undefined
       ? currentTwin.health_score
-      : machine?.latest_prediction?.health_score ?? null;
+      : machine?.latest_prediction?.health_score ?? predictionRecord?.health_score ?? null;
 
   const failureProbability =
     currentTwin?.failure_probability !== undefined
       ? currentTwin.failure_probability
-      : machine?.latest_prediction?.failure_probability ?? null;
+      : machine?.latest_prediction?.failure_probability ?? predictionRecord?.failure_probability ?? null;
 
   const riskBand =
-    currentTwin?.risk_band || machine?.latest_prediction?.risk_band || null;
+    currentTwin?.risk_band || machine?.latest_prediction?.risk_band || predictionRecord?.risk_band || null;
 
   const operatingState =
     currentTwin?.operating_state || "UNKNOWN";
@@ -205,6 +221,40 @@ export const MachineDetailPage: React.FC = () => {
 
   const lastSeq =
     currentTwin?.last_seq ?? machine?.latest_telemetry?.seq ?? null;
+
+  const topFactors =
+    liveTwin?.top_factors ||
+    machine?.latest_twin?.top_factors ||
+    machine?.latest_prediction?.top_factors ||
+    predictionRecord?.top_factors ||
+    null;
+
+  const recommendation =
+    liveTwin?.recommendation ||
+    machine?.latest_twin?.recommendation ||
+    null;
+
+  const anomalyScore =
+    currentTwin?.anomaly_score !== undefined
+      ? currentTwin.anomaly_score
+      : machine?.latest_prediction?.anomaly_score ?? predictionRecord?.anomaly_score ?? null;
+
+  const anomalyFlag =
+    currentTwin?.anomaly_flag !== undefined
+      ? currentTwin.anomaly_flag
+      : machine?.latest_prediction?.anomaly_flag ?? predictionRecord?.anomaly_flag ?? null;
+
+  const modelVersion =
+    currentTwin?.model_version ||
+    machine?.latest_prediction?.model_version ||
+    predictionRecord?.model_version ||
+    "v1.2-xgb";
+
+  const predictionTs =
+    machine?.latest_prediction?.ts ||
+    predictionRecord?.ts ||
+    currentTwin?.updated_at ||
+    lastTelemetryTs;
 
   // Chart Series Configurations
   const tempSeries: ChartSeries[] = [
@@ -320,6 +370,42 @@ export const MachineDetailPage: React.FC = () => {
             onRefresh={() => loadMachineData(true)}
             isRefreshing={isRefreshing}
           />
+
+          {/* S21: Digital Twin Visualization & AI Predictions / Explanations */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))",
+              gap: "var(--space-6)",
+            }}
+          >
+            {/* T-054: Digital Twin Schematic */}
+            <DigitalTwinView
+              machineId={machine?.machine_id || id || "UNKNOWN"}
+              machineType={machine?.machine_type}
+              operatingState={operatingState}
+              healthState={healthState}
+              connectivityState={connectivityState}
+              healthScore={healthScore}
+              signals={currentSignals}
+              quality={currentTwin?.quality}
+              edge={currentTwin?.edge}
+              isLiveWs={isWsConnected}
+            />
+
+            {/* T-055: AI Predictive Assessment & Explanations Panel */}
+            <PredictionPanel
+              failureProbability={failureProbability}
+              riskBand={riskBand}
+              anomalyScore={anomalyScore}
+              anomalyFlag={anomalyFlag}
+              modelVersion={modelVersion}
+              predictionTs={predictionTs}
+              topFactors={topFactors}
+              recommendation={recommendation}
+              isLoading={isLoading}
+            />
+          </div>
 
           {/* Current Twin State Summary */}
           <MachineStatusSummary

@@ -428,7 +428,7 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({
 
             {/* X-Axis Time Ticks */}
             {data.length > 1 &&
-              [0, Math.floor(data.length / 2), data.length - 1].map((idx) => {
+              Array.from(new Set([0, Math.floor(data.length / 2), data.length - 1])).map((idx) => {
                 const x = getX(idx);
                 const timeStr = formatTimeTick(data[idx].ts);
                 const anchor = idx === 0 ? "start" : idx === data.length - 1 ? "end" : "middle";

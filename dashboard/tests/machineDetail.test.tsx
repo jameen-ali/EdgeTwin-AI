@@ -157,9 +157,9 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail("/machines/MOT-1001");
 
     await waitFor(() => {
-      expect(screen.getByText("MOT-1001")).toBeInTheDocument();
+      expect(screen.getAllByText("MOT-1001").length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.getByText("Industrial Induction Motor")).toBeInTheDocument();
+    expect(screen.getAllByText("Industrial Induction Motor").length).toBeGreaterThanOrEqual(1);
   });
 
   // 2. Machine loading test
@@ -170,9 +170,9 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("MOT-1001")).toBeInTheDocument();
+      expect(screen.getAllByText("MOT-1001").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Sector 4 - Workcell Alpha")).toBeInTheDocument();
-      expect(screen.getByText("Industrial Induction Motor")).toBeInTheDocument();
+      expect(screen.getAllByText("Industrial Induction Motor").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -208,9 +208,9 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("94.2")).toBeInTheDocument();
-      expect(screen.getByText("4.0%")).toBeInTheDocument();
-      expect(screen.getByText("LOW RISK")).toBeInTheDocument();
+      expect(screen.getAllByText(/94\.2/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("4.0%").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("LOW RISK").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("RUNNING").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("HEALTHY").length).toBeGreaterThanOrEqual(1);
     });
@@ -225,15 +225,15 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
 
     await waitFor(() => {
       // Temperature 54.8 °C
-      expect(screen.getByText("54.8")).toBeInTheDocument();
+      expect(screen.getAllByText("54.8").length).toBeGreaterThanOrEqual(1);
       // Vibration 2.15 mm/s
-      expect(screen.getByText("2.15")).toBeInTheDocument();
+      expect(screen.getAllByText("2.15").length).toBeGreaterThanOrEqual(1);
       // RPM 2,950
-      expect(screen.getByText("2,950")).toBeInTheDocument();
+      expect(screen.getAllByText("2,950").length).toBeGreaterThanOrEqual(1);
       // Torque 42.6 Nm
-      expect(screen.getByText("42.6")).toBeInTheDocument();
+      expect(screen.getAllByText("42.6").length).toBeGreaterThanOrEqual(1);
       // Current 14.80 A
-      expect(screen.getByText("14.80")).toBeInTheDocument();
+      expect(screen.getAllByText("14.80").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -286,7 +286,7 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("MOT-1001")).toBeInTheDocument();
+      expect(screen.getAllByText("MOT-1001").length).toBeGreaterThanOrEqual(1);
     });
 
     // Verify presence of dashes rather than 0
@@ -324,9 +324,9 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("31.5")).toBeInTheDocument();
-      expect(screen.getByText("88.0%")).toBeInTheDocument();
-      expect(screen.getByText("CRITICAL RISK")).toBeInTheDocument();
+      expect(screen.getAllByText(/31\.5/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("88.0%").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("CRITICAL RISK").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("TRIPPED").length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -357,11 +357,11 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
 
     await waitFor(() => {
       // Temperature updated to 82.5
-      expect(screen.getByText("82.5")).toBeInTheDocument();
+      expect(screen.getAllByText("82.5").length).toBeGreaterThanOrEqual(1);
       // Vibration updated to 6.88
-      expect(screen.getByText("6.88")).toBeInTheDocument();
+      expect(screen.getAllByText("6.88").length).toBeGreaterThanOrEqual(1);
       // Current updated to 32.10
-      expect(screen.getByText("32.10")).toBeInTheDocument();
+      expect(screen.getAllByText("32.10").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -415,7 +415,7 @@ describe("Machine Detail & Live Telemetry Monitoring (T-053)", () => {
     renderMachineDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("MOT-1001")).toBeInTheDocument();
+      expect(screen.getAllByText("MOT-1001")[0]).toBeInTheDocument();
     });
 
     const backBtn = screen.getByRole("button", { name: /return to fleet directory/i });

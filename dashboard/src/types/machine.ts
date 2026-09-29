@@ -6,6 +6,9 @@
  * - Connectivity: LIVE, STALE, OFFLINE
  */
 
+export * from "./prediction";
+import { FeatureContribution, MaintenanceRecommendation } from "./prediction";
+
 export type OperatingState =
   | "RUNNING"
   | "STOPPED"
@@ -81,8 +84,8 @@ export interface TwinState {
   signals?: Record<string, any>;
   quality?: Record<string, string>;
   edge?: Record<string, any>;
-  top_factors?: Array<Record<string, any>> | null;
-  recommendation?: Record<string, any> | null;
+  top_factors?: FeatureContribution[] | null;
+  recommendation?: MaintenanceRecommendation | null;
   model_version?: string;
   provenance?: string;
   fw?: string | null;
@@ -135,6 +138,8 @@ export interface MachineDetail {
     health_score?: number | null;
     anomaly_flag?: boolean | null;
     anomaly_score?: number | null;
+    top_factors?: FeatureContribution[] | null;
+    model_version?: string;
   } | null;
 }
 

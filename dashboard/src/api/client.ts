@@ -10,6 +10,7 @@ import {
   MachineDetail,
   TwinState,
   TelemetryPoint,
+  PredictionRecord,
   normalizeMachine,
 } from "../types/machine";
 import { AlertItem } from "../types/alert";
@@ -199,6 +200,33 @@ export const api = {
       if (Array.isArray(res)) return res;
       if (res && typeof res === "object" && Array.isArray((res as { items?: TelemetryPoint[] }).items)) {
         return (res as { items: TelemetryPoint[] }).items;
+      }
+      return [];
+    },
+
+    getPredictions: async (
+      machineId: string,
+      params?: {
+        limit?: number;
+        offset?: number;
+        before?: string;
+        after?: string;
+      }
+    ): Promise<PredictionRecord[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.append("limit", String(params.limit));
+      if (params?.offset) searchParams.append("offset", String(params.offset));
+      if (params?.before) searchParams.append("before", params.before);
+      if (params?.after) searchParams.append("after", params.after);
+
+      const queryStr = searchParams.toString();
+      const res = await request<PredictionRecord[] | { items: PredictionRecord[]; total: number }>(
+        `/machines/${encodeURIComponent(machineId)}/predictions${queryStr ? `?${queryStr}` : ""}`,
+        { method: "GET" }
+      );
+      if (Array.isArray(res)) return res;
+      if (res && typeof res === "object" && Array.isArray((res as { items?: PredictionRecord[] }).items)) {
+        return (res as { items: PredictionRecord[] }).items;
       }
       return [];
     },
