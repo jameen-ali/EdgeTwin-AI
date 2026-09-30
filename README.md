@@ -14,27 +14,6 @@
 [![ESP32](https://img.shields.io/badge/ESP32-C%2B%2B17-E7352C?style=flat&logo=espressif&logoColor=white)](https://www.espressif.com/)
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
----
-
-## Visual Showcase
-
-<!-- IMAGE: HERO_OVERVIEW -->
-<!-- Replace with your GitHub-hosted image URL -->
-![EdgeTwin AI — Project Overview](IMAGE_URL_HERE)
-
-<!-- IMAGE: ARCHITECTURE_DIAGRAM -->
-<!-- Replace with your GitHub-hosted image URL -->
-![EdgeTwin AI — End-to-End Architecture](IMAGE_URL_HERE)
-
-<!-- IMAGE: DIGITAL_TWIN_MONITORING -->
-<!-- Replace with your GitHub-hosted image URL -->
-![EdgeTwin AI — Digital Twin Monitoring](IMAGE_URL_HERE)
-
-<!-- IMAGE: MLOPS_LIFECYCLE -->
-<!-- Replace with your GitHub-hosted image URL -->
-![EdgeTwin AI — MLOps Lifecycle](IMAGE_URL_HERE)
-
----
 
 ## Project Overview
 
