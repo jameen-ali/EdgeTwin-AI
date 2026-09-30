@@ -357,7 +357,12 @@ def test_machine_offline_scenario() -> None:
 
 def test_fault_scenarios_top_shap_factors(champion_model: Any) -> None:
     """Test 7: Top SHAP feature attributions correspond to physical scenario drivers."""
-    python_model = getattr(champion_model._model_impl, "python_model", champion_model._model_impl)
+    if hasattr(champion_model, "_model_impl"):
+        python_model = getattr(
+            champion_model._model_impl, "python_model", champion_model._model_impl
+        )
+    else:
+        python_model = champion_model
     explainer = EdgeTwinExplainer(
         model=python_model.calibrated_model,
         feature_cols=python_model.feature_cols,
