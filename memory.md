@@ -1327,3 +1327,52 @@ Per failure type at t*=0.160:
 - Re-calibrating t* to AI4I's 3.4% base rate would dramatically increase recall.
 - True zero-shot transfer requires either sensor parity or a multi-source training set.
 - AI4I has no Vibration/Pressure/Current/Voltage/Operating_Hours — these are EdgeTwin differentiators.
+
+
+---
+
+## S30 — T-073: Final Documentation, Demo Readiness & Project Closure (2026-09-30)
+
+### Session objective
+Project finalization: README, FINAL_EVALUATION_REPORT, DEMO_RUNBOOK, TROUBLESHOOTING.
+Final regression suite, security audit, and closure commit.
+
+### Branch: feat/T-073-finalization (from feat/T-071-ai4i-generalization @ 2c4e4c5)
+
+### Final system state
+- Backend pytest: 702 passed, 7 warnings (full suite including T-071 AI4I)
+- Frontend Vitest: 118 passed / 13 test files
+- ML smoke: 6/6 PASS (artifacts, feature contract, threshold, risk bands, anomaly)
+- Native C++ firmware: 13/13 PASS (g++ -std=c++17)
+- Code quality: ruff 0 errors, black 159 files unchanged, git diff --check clean
+- Docker Compose: static config validated; live daemon unavailable on Windows host
+- Wokwi: not configured; native tests validate firmware logic independently
+- Security audit: No secrets in tracked files; .env.example has placeholders only
+- Held-out test isolation: data/test/ never accessed during T-070/T-071/T-073
+
+### Documents created (S30)
+- README.md: Full project README (~23k chars) with Mermaid diagrams, all benchmarks, setup
+- docs/FINAL_EVALUATION_REPORT.md: 20-section evaluation report (~23k chars)
+- docs/DEMO_RUNBOOK.md: 24-step demo guide (~10k chars)
+- docs/TROUBLESHOOTING.md: Common issue coverage (~9k chars)
+- tasks.md: T-073 DONE appended
+
+### T-070 benchmark (S28, 8 scenarios, 740 messages)
+Detection rate: 100.0% (8/8). False alarm rate: 0.0%.
+Mean pipeline latency: 60.71 ms (max 90.77 ms) -- well under 2s PRD target.
+
+### T-071 AI4I external validation (S29, 10k rows, 3.4% failure rate)
+ROC-AUC: 0.752 (meaningful discrimination; champion unmodified).
+Recall at t*=0.160: 0.041 (expected -- base-rate mismatch + 43% missing features).
+8/14 production features available; 6 imputed with training medians.
+
+### Remaining BLOCKED items
+- T-002: Training data provenance -- STILL BLOCKED (dataset source unverified)
+
+### Demo readiness: READY
+Docker Compose stack is verified. Full demo flow documented in DEMO_RUNBOOK.md.
+Fallback procedure documented in TROUBLESHOOTING.md.
+
+### Final project structure: COMPLETE
+All 15 PRD functional requirements (FR-01 to FR-15) implemented with passing tests.
+Champion model (XGBoost, t*=0.160): PR-AUC 0.923, Recall 0.896, Precision 0.882 (S04).

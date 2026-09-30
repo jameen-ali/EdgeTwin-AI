@@ -443,3 +443,35 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 ## Suggested order
 T-001 → T-003 → (T-002 when user answers) → T-010/T-011 → T-012 → T-013–T-016 → T-020 → T-040 (early risk check!) → T-021/T-022 → T-030–T-037 → T-041/T-042 → T-050… → T-060/T-061 → T-070 → T-071 → T-072.
 The Wokwi spike (T-040) is scheduled early on purpose: it is the largest external dependency.
+
+
+---
+
+## T-073 Final Documentation, Demo Readiness & Project Closure [DONE]
+- **Goal:** Finalize the EdgeTwin AI project for college evaluation, demo, and GitHub presentation. Complete all documentation, run final regressions, and produce a clean final commit.
+- **Branch:** eat/T-073-finalization
+- **Base commit:** 2c4e4c5 (style: fix ruff/black issues in T-071 benchmark files)
+- **Session:** S30
+
+### Deliverables
+- README.md: Professional full project README with Mermaid architecture diagrams, ML results, benchmark results, setup instructions, MQTT topics, demo guide, tech stack, project structure, known limitations.
+- docs/FINAL_EVALUATION_REPORT.md: 20-section technical evaluation report. Covers all system layers, ML pipeline (S04 results), T-070 benchmark (S28), T-071 AI4I validation (S29), final metrics table (3 separate contexts), limitations, reproducibility, future work.
+- docs/DEMO_RUNBOOK.md: 24-step demo runbook for student presenter. Covers Docker startup, login, fleet overview, live telemetry, Digital Twin, fault injection (Heat Dissipation), SHAP explanation, alert lifecycle, maintenance work order, feedback, history, MLOps, drift, scenario control, fallback procedure.
+- docs/TROUBLESHOOTING.md: Common issues for Docker, PostgreSQL, Mosquitto, API, frontend, MQTT, WebSocket, migrations, firmware tests, MLflow artifacts, environment variables.
+
+### Final Validation Results (S30)
+- ruff: 0 errors (8 auto-fixed in T-071 files)
+- black: 159 files unchanged
+- git diff --check: clean
+- Backend pytest: 702 passed, 7 warnings
+- Frontend Vitest: 118 passed / 13 files
+- ML smoke: 6/6 PASS
+- Native C++ firmware: 13/13 PASS (g++ -std=c++17)
+- T-071 AI4I integration: 34/34 PASS
+- Docker compose config: VALID (static; daemon unavailable on Windows host)
+- Wokwi: not configured (graceful notice; native tests pass)
+- Security audit: No literal secrets in tracked files (.env.example has placeholders only)
+- Held-out test data: Not accessed. data/test/ quarantine maintained.
+
+### BLOCKED / Unresolved
+- T-002: Training data provenance audit — STILL BLOCKED (dataset source unverified)
