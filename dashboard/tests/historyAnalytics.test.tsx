@@ -281,7 +281,9 @@ describe("HistoryPage & Analytics (T-057)", () => {
     renderHistoryPage();
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Scope:/i)).toBeInTheDocument();
+      const select = screen.getByLabelText(/Scope:/i);
+      expect(select).toBeInTheDocument();
+      expect(select).not.toBeDisabled();
     });
 
     const select = screen.getByLabelText(/Scope:/i);
