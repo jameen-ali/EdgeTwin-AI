@@ -49,6 +49,8 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-edgetwin-dev-secret-key-do-not-use-in-production-12345678}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-admin-password-in-production}
       CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173","http://localhost:80","http://localhost","http://127.0.0.1:3000","http://127.0.0.1:5173"]'
     ports:
       - "8000:8000"
