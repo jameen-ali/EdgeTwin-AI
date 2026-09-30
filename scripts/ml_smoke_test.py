@@ -22,14 +22,23 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-import pytest
-
 
 def main() -> int:
     """Run pytest suite on tests/ml/test_ml_smoke.py."""
     print("=" * 70)
     print("EdgeTwin AI — Running ML Production Smoke Test Suite")
     print("=" * 70)
+
+    try:
+        import pytest
+    except ImportError:
+        print(
+            "ERROR: 'pytest' is required to execute the ML production smoke test suite.\n"
+            "Please install test dependencies: pip install -e .[dev]",
+            file=sys.stderr,
+        )
+        return 1
+
     test_path = _PROJECT_ROOT / "tests" / "ml" / "test_ml_smoke.py"
     if not test_path.is_file():
         print(f"ERROR: Smoke test file not found: {test_path}", file=sys.stderr)

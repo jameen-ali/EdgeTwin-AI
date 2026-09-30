@@ -281,7 +281,7 @@ def run_benchmark() -> dict:
             "detection_rate": float(det / n),
             "mean_score": float(type_probs.mean()),
         }
-        print(f"  {label}: {det}/{n} ({det/n:.1%}) mean_score={type_probs.mean():.4f}")
+        print(f"  {label}: {det}/{n} ({det / n:.1%}) mean_score={type_probs.mean():.4f}")
 
     score_s = pd.Series(y_prob)
     score_stats = {

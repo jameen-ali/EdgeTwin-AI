@@ -150,9 +150,7 @@ def derive_machine_type(
     # Unknown prefixes (Machine_ID prefix not in map)
     unknown_prefix_mask = df_out["_derived_type"].isna()
     unknown_prefixes: list[str] = list(
-        df_out.loc[unknown_prefix_mask, "Machine_ID"]
-        .apply(lambda mid: str(mid)[:3])
-        .unique()
+        df_out.loc[unknown_prefix_mask, "Machine_ID"].apply(lambda mid: str(mid)[:3]).unique()
     )
 
     # Apply: fill missing from derived; override conflicts with derived

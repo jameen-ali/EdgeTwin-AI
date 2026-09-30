@@ -489,10 +489,7 @@ def write_comparison_table(
         "- Preprocessing fitted on training data only.",
         "- No threshold optimization performed (belongs to T-013).",
         "- XGBoost scale_pos_weight computed from actual training label ratio.",
-        (
-            "- Tool Wear Failure is the historically weakest sub-class; "
-            "see per-failure-type recall."
-        ),
+        ("- Tool Wear Failure is the historically weakest sub-class; see per-failure-type recall."),
         "",
     ]
 
@@ -608,9 +605,7 @@ def run_comparison(
     print("[T-012] Evaluating champion on held-out test set...")
     test_result = evaluate_champion_on_test(champion, test_df, git_commit=git_commit)
     tm = test_result["test_metrics"]
-    print(
-        f"[T-012] Test: PR-AUC={tm['pr_auc']:.4f}  " f"Recall={tm['recall']:.4f}  F1={tm['f1']:.4f}"
-    )
+    print(f"[T-012] Test: PR-AUC={tm['pr_auc']:.4f}  Recall={tm['recall']:.4f}  F1={tm['f1']:.4f}")
 
     # Write comparison table
     target_output_path = (

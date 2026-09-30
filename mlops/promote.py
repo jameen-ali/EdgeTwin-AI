@@ -577,7 +577,7 @@ def rollback_champion(
         event="rollback_executed",
         actor=actor,
         challenger_version=demoted_version,  # reusing field: records demoted version
-        notes=(f"Rolled back to v{target_version} from v{demoted_version}. " f"Reason: {reason}"),
+        notes=(f"Rolled back to v{target_version} from v{demoted_version}. Reason: {reason}"),
     )
     append_audit_log(rollback_entry, audit_log_path)
 

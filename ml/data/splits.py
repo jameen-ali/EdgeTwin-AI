@@ -219,9 +219,7 @@ def split_dataset(
         raise ValueError("train_frac + val_frac must be < 1.0 (leaves room for test).")
 
     machine_ids = sorted(df[group_col].unique().tolist())
-    machine_failure_rates = (
-        df.groupby(group_col)[target_col].mean().to_dict()
-    )
+    machine_failure_rates = df.groupby(group_col)[target_col].mean().to_dict()
 
     assignment = _assign_machines_to_splits(
         machine_ids=machine_ids,

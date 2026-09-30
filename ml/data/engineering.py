@@ -171,8 +171,7 @@ def apply_feature_set(df: pd.DataFrame, feature_set: str) -> pd.DataFrame:
     """
     if feature_set not in VALID_FEATURE_SETS:
         raise ValueError(
-            f"Unknown feature_set '{feature_set}'. "
-            f"Valid options: {VALID_FEATURE_SETS}"
+            f"Unknown feature_set '{feature_set}'. Valid options: {VALID_FEATURE_SETS}"
         )
     if feature_set == FEATURE_SET_BASE:
         return df.copy()
