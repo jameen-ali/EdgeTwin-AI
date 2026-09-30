@@ -1,5 +1,5 @@
 # Multi-stage production-ready Dockerfile for EdgeTwin AI FastAPI Backend (T-063)
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -9,8 +9,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies (configure custom User-Agent to prevent CDN 403 on Debian repos)
+RUN echo 'Acquire::http::User-Agent "Mozilla/5.0";' > /etc/apt/apt.conf.d/99user-agent && \
+    apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
@@ -32,8 +33,8 @@ COPY mlops/ ./mlops/
 COPY artifacts/ ./artifacts/
 COPY scripts/ ./scripts/
 
-# Ensure scripts are executable
-RUN chmod +x scripts/docker-entrypoint.sh
+# Ensure scripts are executable and normalize line endings
+RUN sed -i 's/\r$//' scripts/docker-entrypoint.sh && chmod +x scripts/docker-entrypoint.sh
 
 # Run as non-root user for security (Section 18)
 RUN useradd -m -u 1000 edgetwin && \
