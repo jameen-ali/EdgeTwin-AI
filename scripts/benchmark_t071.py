@@ -23,20 +23,20 @@ from __future__ import annotations
 import json
 import math
 import os
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 import mlflow
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
+    average_precision_score,
+    brier_score_loss,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
     roc_auc_score,
-    average_precision_score,
-    confusion_matrix,
-    brier_score_loss,
 )
 
 # ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ def evaluate(y_true, y_prob, threshold: float) -> dict:
     n_pos = int(y_true.sum())
     n_neg = int(len(y_true) - n_pos)
     return {
-        "n_total": int(len(y_true)),
+        "n_total": len(y_true),
         "n_pos": n_pos,
         "n_neg": n_neg,
         "failure_rate": float(y_true.mean()),
@@ -256,11 +256,18 @@ def run_benchmark() -> dict:
 
     print("\n[6/6] Calibration and failure-type breakdown")
     calibration_gap = abs(y_prob.mean() - y.mean())
-    print(f"  AI4I failure rate: {y.mean():.4f}, mean pred: {y_prob.mean():.4f}, gap: {calibration_gap:.4f}")
+    print(
+        f"  AI4I failure rate: {y.mean():.4f}, mean pred: {y_prob.mean():.4f}, gap: {calibration_gap:.4f}"
+    )
 
     failure_type_results = {}
-    for col, label in [("TWF", "Tool Wear Failure"), ("HDF", "Heat Dissipation Failure"),
-                        ("PWF", "Power Failure"), ("OSF", "Overstrain Failure"), ("RNF", "Random Failure")]:
+    for col, label in [
+        ("TWF", "Tool Wear Failure"),
+        ("HDF", "Heat Dissipation Failure"),
+        ("PWF", "Power Failure"),
+        ("OSF", "Overstrain Failure"),
+        ("RNF", "Random Failure"),
+    ]:
         mask = ai4i_raw[col].values == 1
         if mask.sum() < 5:
             continue
@@ -268,7 +275,8 @@ def run_benchmark() -> dict:
         n = int(mask.sum())
         det = int((type_probs >= FROZEN_THRESHOLD).sum())
         failure_type_results[col] = {
-            "label": label, "n": n,
+            "label": label,
+            "n": n,
             "detected_at_threshold": det,
             "detection_rate": float(det / n),
             "mean_score": float(type_probs.mean()),
@@ -289,9 +297,9 @@ def run_benchmark() -> dict:
         "dataset_url": "https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset",
         "champion_model": f"{MODEL_NAME}@{CHAMPION_ALIAS}",
         "frozen_threshold": FROZEN_THRESHOLD,
-        "run_timestamp": datetime.now(timezone.utc).isoformat(),
+        "run_timestamp": datetime.now(UTC).isoformat(),
         "dataset_profile": {
-            "n_rows": int(len(ai4i_raw)),
+            "n_rows": len(ai4i_raw),
             "n_cols_raw": int(ai4i_raw.shape[1]),
             "failure_rate": float(y.mean()),
             "n_failures": int(y.sum()),

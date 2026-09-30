@@ -17,25 +17,26 @@ from __future__ import annotations
 
 import json
 import math
+
+# Import benchmark module
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-# Import benchmark module
-import sys
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.benchmark_t071 import (
+    _TWO_PI_OVER_60,
     FEATURE_COMPATIBILITY,
+    FROZEN_THRESHOLD,
     MACHINE_TYPE_MAP,
     PRODUCTION_FEATURE_COLS,
-    FROZEN_THRESHOLD,
     build_edgetwin_features,
     evaluate,
-    _TWO_PI_OVER_60,
 )
 
 AI4I_CSV = PROJECT_ROOT / "data" / "raw" / "ai4i2020.csv"
@@ -46,23 +47,26 @@ RESULTS_JSON = PROJECT_ROOT / "artifacts" / "t071_ai4i_results.json"
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def ai4i_sample() -> pd.DataFrame:
     """Return a small synthetic AI4I-shaped DataFrame for unit tests."""
-    return pd.DataFrame({
-        "Air temperature [K]": [298.1, 300.0, 302.5],
-        "Process temperature [K]": [308.6, 310.0, 313.0],
-        "Rotational speed [rpm]": [1551, 1400, 2000],
-        "Torque [Nm]": [42.8, 30.0, 60.0],
-        "Tool wear [min]": [0, 100, 200],
-        "Type": ["M", "L", "H"],
-        "Machine failure": [0, 0, 1],
-        "TWF": [0, 0, 0],
-        "HDF": [0, 0, 1],
-        "PWF": [0, 0, 0],
-        "OSF": [0, 0, 0],
-        "RNF": [0, 0, 0],
-    })
+    return pd.DataFrame(
+        {
+            "Air temperature [K]": [298.1, 300.0, 302.5],
+            "Process temperature [K]": [308.6, 310.0, 313.0],
+            "Rotational speed [rpm]": [1551, 1400, 2000],
+            "Torque [Nm]": [42.8, 30.0, 60.0],
+            "Tool wear [min]": [0, 100, 200],
+            "Type": ["M", "L", "H"],
+            "Machine failure": [0, 0, 1],
+            "TWF": [0, 0, 0],
+            "HDF": [0, 0, 1],
+            "PWF": [0, 0, 0],
+            "OSF": [0, 0, 0],
+            "RNF": [0, 0, 0],
+        }
+    )
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +78,7 @@ def ai4i_features(ai4i_sample) -> pd.DataFrame:
 # Feature compatibility catalogue tests
 # ---------------------------------------------------------------------------
 
+
 class TestFeatureCompatibilityCatalogue:
     """Validate that the feature compatibility map is complete and consistent."""
 
@@ -84,23 +89,23 @@ class TestFeatureCompatibilityCatalogue:
     def test_all_statuses_are_valid(self):
         valid_statuses = {"DIRECT", "MAPPED", "DERIVED", "UNAVAILABLE"}
         for feat, meta in FEATURE_COMPATIBILITY.items():
-            assert meta["status"] in valid_statuses, (
-                f"Feature '{feat}' has invalid status '{meta['status']}'"
-            )
+            assert (
+                meta["status"] in valid_statuses
+            ), f"Feature '{feat}' has invalid status '{meta['status']}'"
 
     def test_unavailable_features_have_no_ai4i_col(self):
         for feat, meta in FEATURE_COMPATIBILITY.items():
             if meta["status"] == "UNAVAILABLE":
-                assert meta["ai4i_col"] is None, (
-                    f"UNAVAILABLE feature '{feat}' should have ai4i_col=None"
-                )
+                assert (
+                    meta["ai4i_col"] is None
+                ), f"UNAVAILABLE feature '{feat}' should have ai4i_col=None"
 
     def test_available_features_have_ai4i_col(self):
         for feat, meta in FEATURE_COMPATIBILITY.items():
             if meta["status"] in ("DIRECT", "MAPPED"):
-                assert meta["ai4i_col"] is not None, (
-                    f"Feature '{feat}' with status '{meta['status']}' should have ai4i_col"
-                )
+                assert (
+                    meta["ai4i_col"] is not None
+                ), f"Feature '{feat}' with status '{meta['status']}' should have ai4i_col"
 
     def test_frozen_threshold_is_production_value(self):
         """Confirm we are using the exact production threshold."""
@@ -118,6 +123,7 @@ class TestFeatureCompatibilityCatalogue:
 # ---------------------------------------------------------------------------
 # Feature construction tests
 # ---------------------------------------------------------------------------
+
 
 class TestBuildEdgetwinFeatures:
     """Validate feature matrix construction from AI4I data."""
@@ -156,12 +162,18 @@ class TestBuildEdgetwinFeatures:
 
     def test_unavailable_columns_are_nan_not_zero(self, ai4i_features):
         """UNAVAILABLE columns must be NaN, not zero (zero would be a false physical value)."""
-        unavail_cols = ["Vibration_mm_s", "Pressure_bar", "Current_A",
-                        "Voltage_V", "Operating_Hours", "Apparent_Power_VA"]
+        unavail_cols = [
+            "Vibration_mm_s",
+            "Pressure_bar",
+            "Current_A",
+            "Voltage_V",
+            "Operating_Hours",
+            "Apparent_Power_VA",
+        ]
         for col in unavail_cols:
-            assert ai4i_features[col].isna().all(), (
-                f"Column '{col}' should be entirely NaN, not zero or another value"
-            )
+            assert (
+                ai4i_features[col].isna().all()
+            ), f"Column '{col}' should be entirely NaN, not zero or another value"
 
     def test_delta_t_is_unit_invariant(self, ai4i_sample, ai4i_features):
         """Delta_T_C from Kelvin temperatures must equal the Kelvin difference."""
@@ -169,9 +181,7 @@ class TestBuildEdgetwinFeatures:
             ai4i_sample["Process temperature [K]"].values
             - ai4i_sample["Air temperature [K]"].values
         )
-        np.testing.assert_allclose(
-            ai4i_features["Delta_T_C"].values, expected_delta, rtol=1e-6
-        )
+        np.testing.assert_allclose(ai4i_features["Delta_T_C"].values, expected_delta, rtol=1e-6)
 
     def test_mech_power_derivation(self, ai4i_sample, ai4i_features):
         """Mech_Power_W = Torque_Nm * RPM * 2pi/60."""
@@ -180,13 +190,10 @@ class TestBuildEdgetwinFeatures:
             * ai4i_sample["Rotational speed [rpm]"].values
             * _TWO_PI_OVER_60
         )
-        np.testing.assert_allclose(
-            ai4i_features["Mech_Power_W"].values, expected, rtol=1e-6
-        )
+        np.testing.assert_allclose(ai4i_features["Mech_Power_W"].values, expected, rtol=1e-6)
 
     def test_machine_type_mapping(self, ai4i_sample, ai4i_features):
-        for orig, mapped in zip(ai4i_sample["Type"].values,
-                                ai4i_features["Machine_Type"].values):
+        for orig, mapped in zip(ai4i_sample["Type"].values, ai4i_features["Machine_Type"].values):
             assert mapped == MACHINE_TYPE_MAP[orig]
 
     def test_no_column_contains_inf(self, ai4i_features):
@@ -199,6 +206,7 @@ class TestBuildEdgetwinFeatures:
 # ---------------------------------------------------------------------------
 # Evaluation function tests
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluate:
     """Validate the evaluation helper function."""
@@ -230,10 +238,25 @@ class TestEvaluate:
         y_true = np.array([0, 1])
         y_prob = np.array([0.1, 0.9])
         m = evaluate(y_true, y_prob, threshold=0.5)
-        for key in ("n_total", "n_pos", "n_neg", "failure_rate", "threshold",
-                    "tp", "fp", "tn", "fn", "precision", "recall", "f1",
-                    "roc_auc", "pr_auc", "brier_score", "false_alarm_rate",
-                    "detection_rate"):
+        for key in (
+            "n_total",
+            "n_pos",
+            "n_neg",
+            "failure_rate",
+            "threshold",
+            "tp",
+            "fp",
+            "tn",
+            "fn",
+            "precision",
+            "recall",
+            "f1",
+            "roc_auc",
+            "pr_auc",
+            "brier_score",
+            "false_alarm_rate",
+            "detection_rate",
+        ):
             assert key in m, f"Missing key '{key}' in evaluate() output"
 
     def test_no_division_by_zero_on_all_negative(self):
@@ -246,6 +269,7 @@ class TestEvaluate:
 # ---------------------------------------------------------------------------
 # Benchmark output artefact tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(not RESULTS_JSON.exists(), reason="Run benchmark first")
 class TestBenchmarkResults:
@@ -313,4 +337,4 @@ class TestBenchmarkResults:
 
     def test_ai4i_namespace_isolation(self, results):
         """Results must be clearly in the AI4I validation namespace, not production."""
-        assert "ai4i" in results["benchmark"].lower() or results["benchmark"] == "T-071"
+        assert "ai4i" in results["benchmark"].lower() or results["benchmark"] == "T-071"
