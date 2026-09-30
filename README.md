@@ -14,6 +14,7 @@
 [![ESP32](https://img.shields.io/badge/ESP32-C%2B%2B17-E7352C?style=flat&logo=espressif&logoColor=white)](https://www.espressif.com/)
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
+---
 
 ## Project Overview
 
@@ -318,7 +319,6 @@ EdgeTwin-AI/
 │       └── ci.yml               # 7-job GitHub Actions CI/CD pipeline
 ├── api/                         # FastAPI backend service
 │   ├── alembic.ini              # Database migration configuration
-│   ├── Dockerfile               # Backend container specification
 │   ├── migrations/              # Alembic schema version migration scripts
 │   └── app/
 │       ├── main.py              # Application entrypoint & lifespan management
@@ -378,6 +378,13 @@ EdgeTwin-AI/
 │   ├── training_reference_stats.json
 │   ├── t070_benchmark_results.json
 │   └── t071_ai4i_results.json
+├── data/                        # Dataset directories & raw immutable dataset
+│   ├── raw/                     # predictive_maintenance_dataset.csv
+│   ├── interim/                 # Interim splits directory (DVC tracked)
+│   └── processed/               # Processed feature directory
+├── notebooks/                   # Exploratory data analysis & feature research
+│   ├── 01_Data_Understanding.ipynb
+│   └── 02_Feature_Engineering.ipynb
 ├── mosquitto/                   # MQTT broker configuration
 │   └── mosquitto.conf           # Mosquitto listener & security rules
 ├── tests/                       # Automated test suites (Pytest, Vitest, C++)
@@ -391,9 +398,14 @@ EdgeTwin-AI/
 ├── docs/                        # Public system documentation
 │   ├── FINAL_EVALUATION_REPORT.md # Comprehensive final evaluation report
 │   ├── DEMO_RUNBOOK.md          # Step-by-step evaluator demonstration guide
-│   └── TROUBLESHOOTING.md       # Production troubleshooting runbook
-├── .env.example                 # Environment configuration template
+│   ├── TROUBLESHOOTING.md       # Production troubleshooting runbook
+│   ├── api/                     # Schema definitions (telemetry.v1.schema.json)
+│   ├── dataset/                 # Dataset fault signatures documentation
+│   ├── ml/                      # ML calibration, explainability & health models
+│   └── wokwi/                   # Wokwi simulation & hardware integration guides
+├── Dockerfile                   # Backend API container specification
 ├── docker-compose.yml           # Full-stack Docker multi-container definition
+├── .env.example                 # Environment configuration template
 ├── pyproject.toml               # Python project configuration & dependencies
 └── README.md                    # Project documentation
 ```

@@ -1,6 +1,6 @@
 # design.md — EdgeTwin AI Design System
 
-Status: **v0.1 PROVISIONAL.** Written before the reference website is received. When you send it, I will extract principles (layout, type, spacing, navigation, hierarchy, colour philosophy), record them in `memory.md`, and revise this file. Nothing will be copied: no branding, layout, text, images, components, CSS, or code.
+Status: **v1.0 Production**. Industrial design tokens, component hierarchy, typography, and theme definitions for the EdgeTwin AI monitoring platform.
 
 ## 1. Brand personality
 Industrial · precise · calm · trustworthy · human-made. Reads like an instrument panel or a maintenance log, not a marketing site. Information first, decoration never. Numbers are the hero.

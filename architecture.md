@@ -137,7 +137,7 @@ The backend is identical in both paths (only `MQTT_URL/USER/PASS` env vars chang
 | Vibration (mm/s RMS-like) | MPU6050 accel → windowed RMS on ESP32 | proxy; **not** calibrated velocity |
 | Load | slide pot → torque/current model | |
 | RPM, pressure, voltage, tool wear, op hours | firmware process model driven by load + scenario | labelled SIMULATED |
-Healthy envelope and fault signatures come from EDA of our training data (see memory.md §Dataset), so telemetry is in-distribution by construction, and the fact that it is simulated is explicit in `provenance`.
+Healthy envelope and fault signatures come from EDA of our training data (see docs/dataset/fault_signatures.md), so telemetry is in-distribution by construction, and the fact that it is simulated is explicit in `provenance`.
 
 **Edge vs cloud split [DECISION]**
 | At the edge (must work if backend is down) | In the backend (needs data, models, history) |

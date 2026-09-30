@@ -38,7 +38,7 @@ from sklearn.pipeline import Pipeline
 
 from ml.data.features import validate_no_leakage
 
-# Global disclaimer required by rules.md and tasks.md
+# Model explainability disclaimer (TreeSHAP attribution in margin space; not causal)
 EXPLAINABILITY_DISCLAIMER: str = (
     "Statistical association with failure condition in model log-odds margin space; not causal."
 )

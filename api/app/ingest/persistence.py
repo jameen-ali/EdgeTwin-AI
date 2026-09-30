@@ -96,7 +96,7 @@ def _ensure_machine(db: Session, machine_id: str) -> None:
       should be ingested (FR-02).
     - Silently discarding valid telemetry from an unlisted machine is worse than
       auto-registering with type=UNKNOWN so an operator can later add metadata.
-    - Memory.md records this as an explicit decision (added in S11).
+    - Recorded as an explicit architecture decision for graceful edge discovery.
     """
     stmt = select(MachineRecord).where(MachineRecord.machine_id == machine_id)
     result = db.execute(stmt).scalar_one_or_none()

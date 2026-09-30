@@ -1,6 +1,6 @@
 {
   "reference_version": "v1.0-train-split",
-  "source_dataset": "D:/Project/EdgeTwin-AI/data/interim/splits/train.csv",
+  "source_dataset": "data/interim/splits/train.csv",
   "total_records": 6897,
   "machine_count": 42,
   "feature_count": 14,

@@ -114,7 +114,7 @@ From the 6,081 non-failure training rows (`Machine_Failure == 0`):
 ### SCN-06: Sudden High-Vibration / "Random" Failure (RNF)
 * **Scenario ID:** `SCN-06-RANDOM-VIBRATION`
 * **Target Failure Mode:** Random Failure.
-* **Empirical Grounding [EMPIRICAL]:** A critical finding of our dataset audit (`memory.md` §3) is that rows labelled "Random Failure" in this dataset are rule-generated synthetic clusters rather than physically stochastic anomalies: they systematically exhibit vibration velocity clustered around $7.4$ mm/s and fluid pressure clustered around $9.2$ bar.
+* **Empirical Grounding [EMPIRICAL]:** A critical finding of our dataset exploratory analysis is that rows labelled "Random Failure" in this dataset are rule-generated synthetic clusters rather than physically stochastic anomalies: they systematically exhibit vibration velocity clustered around $7.4$ mm/s and fluid pressure clustered around $9.2$ bar.
 * **Simulated Trajectory [ASSUMPTION]:** Instantaneous step change at $t=30\text{ s}$:
   * Vibration jumps from $2.5 \to 7.4$ mm/s.
   * Pressure jumps from $5.5 \to 9.2$ bar.

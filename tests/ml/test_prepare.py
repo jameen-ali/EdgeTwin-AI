@@ -23,7 +23,7 @@ Notes on T8 row-count calculation:
     with a dedup-first order (raw NaN ≠ non-null), which detected only 106
     duplicates.  The spec-mandated derive-first order is semantically correct
     because duplicate identity should be evaluated on recovered values.
-    This discrepancy is documented in the S02 report and memory.md.
+    This discrepancy is documented in the data preparation specification.
 """
 
 from __future__ import annotations

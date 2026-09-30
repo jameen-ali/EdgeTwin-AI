@@ -56,8 +56,10 @@ edge/config.h
 /README-images/
 /images/
 
-# Internal development notes & session reports
+# Internal development notes, rules & session reports
 docs/sessions/
 tasks.md
 memory.md
 gemini.md
+rules.md
+.agents/

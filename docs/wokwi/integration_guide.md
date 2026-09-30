@@ -78,7 +78,7 @@ EdgeTwin AI integrates a physical/emulated edge tier running on an ESP32 microco
 
 ## 2. Hardware Schematic & Pin Assignments
 
-Reference: [`edge/diagram.json`](file:///d:/Project/EdgeTwin-AI/edge/diagram.json).
+Reference: [`edge/diagram.json`](../../edge/diagram.json).
 
 | Component | Part ID | ESP32 Pin | Purpose | Physical / Simulated Signal |
 |---|---|---|---|---|
@@ -167,7 +167,7 @@ Use this repeatable 10-stage checklist to verify edge-to-backend integrity:
 
 ## 5. Automated Verification Harness
 
-EdgeTwin AI includes an automated verification runner: [`simulation/wokwi_runner.py`](file:///d:/Project/EdgeTwin-AI/simulation/wokwi_runner.py).
+EdgeTwin AI includes an automated verification runner: [`simulation/wokwi_runner.py`](../../simulation/wokwi_runner.py).
 
 ### Running Locally:
 ```bash

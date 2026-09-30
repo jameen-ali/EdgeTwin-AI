@@ -9,7 +9,7 @@ Responsibilities:
 5. Notify all registered WebSocket connection callbacks on every state change.
 6. Persist each state transition as a TwinSnapshotRecord via snapshot.py.
 
-Design rules (from rules.md):
+Core design invariants:
 - Business logic is pure / dependency-injected (no global singletons inside the class).
 - Twin state contains ONLY derived/health information + last raw signals; the UI
   never computes health or risk — it renders twin state.
