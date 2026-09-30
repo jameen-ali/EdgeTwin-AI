@@ -8,12 +8,16 @@ Provides:
   and publishing telemetry to MQTT using paho-mqtt VERSION2.
 """
 
+import argparse
 import json
 import logging
+import time
 from collections import deque
+from pathlib import Path
 from typing import Any
 
 import paho.mqtt.client as mqtt
+import yaml
 
 from simulation.contract import TelemetryValidator
 from simulation.process_model import SimulatedMachine
@@ -172,3 +176,149 @@ class VirtualEdge:
             self.buffer.append(payload)
 
         return payload
+
+
+def main(argv: list[str] | None = None) -> None:
+    """CLI entrypoint for virtual edge publisher."""
+    parser = argparse.ArgumentParser(
+        description="EdgeTwin AI Virtual Edge Telemetry Publisher",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--machine-id",
+        type=str,
+        default="MOT-1001",
+        help="Target machine identifier",
+    )
+    parser.add_argument(
+        "--rate",
+        type=float,
+        default=1.0,
+        help="Publishing rate in Hz (ticks per second)",
+    )
+    parser.add_argument(
+        "--broker",
+        type=str,
+        default="localhost",
+        help="MQTT broker host address",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=1883,
+        help="MQTT broker port number",
+    )
+    parser.add_argument(
+        "--scenario",
+        type=str,
+        default=None,
+        help="Path or name of scenario YAML file (e.g., healthy_nominal)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for deterministic simulation",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=None,
+        help="Total ticks to simulate before exiting (default: run indefinitely)",
+    )
+
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    scenario_dict = None
+    if args.scenario:
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_file():
+            candidates = [
+                Path(__file__).parent / "scenarios" / f"{args.scenario}.yaml",
+                Path(__file__).parent / "scenarios" / args.scenario,
+            ]
+            for cand in candidates:
+                if cand.is_file():
+                    scenario_path = cand
+                    break
+        if scenario_path.is_file():
+            logger.info("Loading scenario from %s", scenario_path)
+            with open(scenario_path, "r", encoding="utf-8") as f:
+                scenario_dict = yaml.safe_load(f)
+        else:
+            logger.warning("Scenario '%s' not found, using nominal baseline.", args.scenario)
+
+    tick_interval = 1.0 / args.rate if args.rate > 0 else 1.0
+
+    edge = VirtualEdge(
+        machine_id=args.machine_id,
+        scenario=scenario_dict,
+        seed=args.seed,
+        tick_interval_s=tick_interval,
+        broker_host=args.broker,
+        broker_port=args.port,
+    )
+
+    logger.info(
+        "Starting Virtual Edge for machine=%s -> %s:%d @ %.1f Hz",
+        args.machine_id,
+        args.broker,
+        args.port,
+        args.rate,
+    )
+
+    edge.connect()
+    # Wait briefly for MQTT network loop handshake
+    time.sleep(0.5)
+
+    ticks = 0
+    try:
+        while True:
+            t0 = time.monotonic()
+            payload = edge.step()
+            if payload is None:
+                logger.info("Simulation reached completion of scenario.")
+                break
+
+            ticks += 1
+            ts = payload.get("ts", "")
+            seq = payload.get("seq", 0)
+            m_id = payload.get("machine_id", edge.machine_id)
+            state = edge.machine.state.value
+            signals = payload.get("signals", {})
+            temp = signals.get("process_temp_c", 0.0)
+            rpm = signals.get("rotational_speed_rpm", 0.0)
+            torque = signals.get("torque_nm", 0.0)
+            vib = signals.get("vibration_mm_s")
+            vib_str = f"{vib:4.2f} mm/s" if vib is not None else "N/A"
+
+            print(
+                f"[{ts}] seq={seq:04d} | "
+                f"Machine={m_id} ({state}) | "
+                f"Temp={temp:5.1f} C | Speed={rpm:6.1f} RPM | "
+                f"Torque={torque:4.1f} Nm | Vib={vib_str}"
+            )
+
+            if args.count is not None and ticks >= args.count:
+                logger.info("Completed %d requested ticks.", ticks)
+                break
+
+            elapsed = time.monotonic() - t0
+            sleep_time = max(0.0, tick_interval - elapsed)
+            time.sleep(sleep_time)
+
+    except KeyboardInterrupt:
+        print("\nStopping Virtual Edge...")
+    finally:
+        edge.disconnect()
+        logger.info("Virtual Edge shutdown cleanly.")
+
+
+if __name__ == "__main__":
+    main()
