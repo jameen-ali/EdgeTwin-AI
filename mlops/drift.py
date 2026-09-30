@@ -396,11 +396,17 @@ class DriftReference:
         with open(json_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
-        # For KS test, load raw numeric arrays from train.csv if available
+        # For KS test, load raw numeric arrays from train.csv (or raw dataset fallback)
         raw_samples: dict[str, np.ndarray] = {}
-        if train_csv_path.exists():
+        source_csv = train_csv_path
+        if not source_csv.exists():
+            fallback_raw = _REPO_ROOT / "data" / "raw" / "predictive_maintenance_dataset.csv"
+            if fallback_raw.exists():
+                source_csv = fallback_raw
+
+        if source_csv.exists():
             try:
-                train_df = pd.read_csv(train_csv_path)
+                train_df = pd.read_csv(source_csv)
                 feat_df = apply_feature_set(train_df, "+physics")
                 for col in CONTINUOUS_FEATURES:
                     if col in feat_df.columns:

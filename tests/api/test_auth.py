@@ -183,7 +183,7 @@ class TestAuthentication:
         assert data["token_type"] == "bearer"
         assert data["role"] == "ADMIN"
         assert data["username"] == "admin_user"
-        assert data["expires_in"] == 3600
+        assert data["expires_in"] == get_settings().ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
     def test_invalid_password_returns_401(self, client: TestClient) -> None:
         resp = client.post(
