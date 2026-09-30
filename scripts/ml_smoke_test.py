@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """EdgeTwin AI - Production ML Operational Invariants Smoke Test (T-062).
 
 Fast, deterministic verification script for CI pipelines and local deployment sanity checks.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 scripts/download_ai4i.py - Download AI4I 2020 Predictive Maintenance Dataset.
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """scripts/benchmark_t070.py — End-to-End Detection-Latency & False-Alarm Benchmark (T-070).
 
 Deterministic benchmark harness executing the 8 canonical simulation scenarios:
