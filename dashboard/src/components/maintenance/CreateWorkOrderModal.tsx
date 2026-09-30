@@ -4,6 +4,7 @@ import { Modal } from "../common/Modal";
 import { Button } from "../common/Button";
 import { api } from "../../api/client";
 import { MaintenanceItem, MaintenanceEventType } from "../../types/maintenance";
+import { MachineSummary } from "../../types/machine";
 
 export interface CreateWorkOrderModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({
   const [description, setDescription] = useState<string>(initialDescription);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [availableMachines, setAvailableMachines] = useState<MachineSummary[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +46,23 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({
       setTechnician(initialTechnician);
       setDescription(initialDescription);
       setErrorMessage(null);
+
+      // Fetch registered machines for dropdown selection
+      api.machines
+        .list({ limit: 100 })
+        .then((machs) => {
+          setAvailableMachines(machs);
+          if (!initialMachineId && machs.length > 0) {
+            setMachineId(machs[0].machine_id);
+          } else if (!initialMachineId) {
+            setMachineId("MOT-1001");
+          }
+        })
+        .catch(() => {
+          if (!initialMachineId) {
+            setMachineId("MOT-1001");
+          }
+        });
     }
   }, [isOpen, initialMachineId, initialAlertId, initialEventType, initialDescription, initialTechnician]);
 
@@ -135,22 +154,45 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({
             <label style={{ fontSize: "11px", fontWeight: 600, color: "var(--color-text-muted)" }}>
               MACHINE ID *
             </label>
-            <input
-              type="text"
-              required
-              value={machineId}
-              onChange={(e) => setMachineId(e.target.value.toUpperCase())}
-              placeholder="e.g. MOT-1001"
-              style={{
-                backgroundColor: "var(--color-surface-raised)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-                padding: "8px 10px",
-                color: "var(--color-text-primary)",
-                fontSize: "13px",
-                fontFamily: "var(--font-mono)",
-              }}
-            />
+            {availableMachines.length > 0 ? (
+              <select
+                required
+                value={machineId}
+                onChange={(e) => setMachineId(e.target.value)}
+                style={{
+                  backgroundColor: "var(--color-surface-raised)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "8px 10px",
+                  color: "var(--color-text-primary)",
+                  fontSize: "13px",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {availableMachines.map((m) => (
+                  <option key={m.machine_id} value={m.machine_id}>
+                    {m.machine_id} — {m.machine_type || "Machine"}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                required
+                value={machineId}
+                onChange={(e) => setMachineId(e.target.value.toUpperCase())}
+                placeholder="e.g. MOT-1001"
+                style={{
+                  backgroundColor: "var(--color-surface-raised)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "8px 10px",
+                  color: "var(--color-text-primary)",
+                  fontSize: "13px",
+                  fontFamily: "var(--font-mono)",
+                }}
+              />
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
