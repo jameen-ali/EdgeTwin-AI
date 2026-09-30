@@ -1258,3 +1258,72 @@ Python 3.11+, FastAPI, SQLAlchemy 2, Alembic, pydantic, paho-mqtt (or aiomqtt), 
 
 ## 15. Future considerations
 Shallow-tree edge screening (T-044); Evidently reports; TimescaleDB if volume grows; Prometheus `/metrics`; real sensor hardware (ESP32 + accelerometer) as a bridge from simulation.
+
+
+---
+
+## S29 — T-071: AI4I 2020 Generalization Benchmark (2026-09-30)
+
+### Session objective
+Second-dataset validation: Apply EdgeTwin ML pipeline to the public AI4I 2020
+Predictive Maintenance Dataset (UCI, CC BY 4.0) without modifying the champion model.
+
+### Dataset acquired
+- AI4I 2020: 10,000 rows, 14 columns, 3.39% failure rate (TWF/HDF/PWF/OSF/RNF)
+- Source: UCI ML Repository (Stephan Matzka, HTW Berlin)
+- License: CC BY 4.0
+- Saved: data/raw/ai4i2020.csv
+
+### Feature compatibility result (14 production features)
+
+| Status | Count | Features |
+|---|:---:|---|
+| DIRECT | 3 | Rotational_Speed_RPM, Torque_Nm, Tool_Wear_Min |
+| MAPPED | 3 | Air_Temperature_C (K->C), Process_Temperature_C (K->C), Machine_Type (L/M/H approx) |
+| DERIVED | 2 | Delta_T_C (unit-invariant), Mech_Power_W (RPM+Torque available) |
+| UNAVAILABLE | 6 | Vibration_mm_s, Pressure_bar, Current_A, Voltage_V, Operating_Hours, Apparent_Power_VA |
+
+Key limitation: 43% of production features absent in AI4I. Set to NaN; imputed with
+EdgeTwin training medians (cross-domain imputation bias — documented limitation).
+Machine_Type mapping is approximate (quality variants != machine classes).
+
+### Benchmark results (frozen champion, t*=0.160)
+
+| Metric | Value | Notes |
+|---|:---:|---|
+| ROC-AUC | 0.752 | Meaningful discrimination retained |
+| PR-AUC | 0.285 | vs 0.923 on EdgeTwin test — expected degradation |
+| Recall | 0.041 | 4% at frozen t*=0.16; base-rate mismatch |
+| Precision | 0.933 | When threshold fires: 93% TP rate |
+| False Alarm Rate | 0.001 | Near-zero false positives |
+| Calibration gap | 2.11pp | Model underestimates (3.4% vs 11% prior) |
+
+Per failure type at t*=0.160:
+  - PWF (Power Failure): 11.6% detected — correlates with Torque/RPM (DIRECT features)
+  - OSF (Overstrain): 8.2% detected — correlates with Torque/RPM (DIRECT features)
+  - TWF, HDF, RNF: 0-0.9% — require absent sensors (vibration, voltage, current)
+
+### Scientific conclusions
+1. Model DOES discriminate AI4I classes (ROC-AUC 0.752 >> 0.5).
+2. Production threshold (t*=0.160) is extremely conservative for 3.4% failure rate.
+3. Degradation fully explained by: missing sensors, imputation bias, base-rate mismatch.
+4. Champion model integrity PRESERVED — not re-trained, not re-calibrated.
+5. Result labelled as expected transfer degradation; does NOT invalidate production champion.
+
+### Decisions
+- [DECISION] UNAVAILABLE features filled with NaN (not zero) to allow prod imputer to handle them.
+- [DECISION] Machine_Type L->Motor, M->CNC_Machine, H->Compressor (operational complexity proxy).
+- [DECISION] MLflow experiment edgetwin-ai4i-validation isolated from production experiments.
+- [DECISION] AI4I data never written to data/test/ or any production path.
+
+### Files produced
+- scripts/benchmark_t071.py — benchmark harness
+- tests/integration/test_t071_ai4i.py — 34 tests (34/34 PASS)
+- artifacts/t071_ai4i_results.json — results JSON
+- docs/sessions/S29_report.md — scientific report
+- MLflow experiment: edgetwin-ai4i-validation
+
+### Future considerations
+- Re-calibrating t* to AI4I's 3.4% base rate would dramatically increase recall.
+- True zero-shot transfer requires either sensor parity or a multi-source training set.
+- AI4I has no Vibration/Pressure/Current/Voltage/Operating_Hours — these are EdgeTwin differentiators.

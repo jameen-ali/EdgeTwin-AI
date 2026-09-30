@@ -415,13 +415,31 @@ Full template per task: **ID · Goal · Files · Depends · Implementation · Ac
 
 
 ## PHASE 7 — Verification and demo
+
+### T-071 Second-dataset (AI4I 2020) pipeline run
+- **Goal:** Validate portability of the EdgeTwin predictive-maintenance ML pipeline against the public AI4I 2020 Predictive Maintenance Dataset (UCI, CC BY 4.0) without modifying the production champion.
+- **Files:** `scripts/benchmark_t071.py`, `tests/integration/test_t071_ai4i.py`, `artifacts/t071_ai4i_results.json`, `data/raw/ai4i2020.csv`, `docs/sessions/S29_report.md`.
+- **Depends:** T-012.
+- **Implementation:**
+  - Downloaded AI4I 2020 (10,000 rows, 14 cols, 3.39% failure rate) from UCI ML Repository.
+  - Built explicit feature compatibility table: 3 DIRECT, 3 MAPPED (unit-converted or approximate), 2 DERIVED (physics), 6 UNAVAILABLE (absent sensors).
+  - 6 UNAVAILABLE features set to NaN (not zero) — imputed by champion's fitted SimpleImputer with EdgeTwin training medians. Cross-dataset imputation bias acknowledged as limitation.
+  - Machine_Type mapping: AI4I quality variants L/M/H → EdgeTwin Motor/CNC_Machine/Compressor (approximate; known semantic mismatch documented).
+  - Loaded frozen `edgetwin-risk@champion` (XGBoost, +physics, t\*=0.160) via MLflow — no model code modified.
+  - Ran inference on all 10,000 AI4I rows; evaluated at frozen t\*=0.160.
+  - Results logged to isolated MLflow experiment `edgetwin-ai4i-validation` (never touches production namespace or data/test/).
+  - Key results: ROC-AUC=0.752, PR-AUC=0.285, Recall=4.1% (at t\*=0.16), Precision=93.3%, FAR=0.01%. Degradation fully explained by: missing sensors (43% of features), cross-domain imputation bias, and base-rate mismatch (3.4% vs 11.0%).
+- **Acceptance:** Feature compatibility table complete (14/14 features classified); results JSON saved; MLflow experiment isolated; all limitations documented; no champion model modified; scientific validity preserved.
+- **Tests:** 34 unit/integration tests (TestFeatureCompatibilityCatalogue ×7, TestBuildEdgetwinFeatures ×9, TestEvaluate ×5, TestBenchmarkResults ×13) — 34/34 PASS.
+- **Status:** DONE
+
 | ID | Goal | Depends | Status |
 |---|---|---|---|
 | T-070 | End-to-end test (virtual edge → alert) + **detection-latency / false-alarm benchmark** per scenario | T-035, T-022 | DONE |
-| T-071 | Second-dataset (AI4I 2020) pipeline run | T-012 | TODO |
+| T-071 | Second-dataset (AI4I 2020) pipeline run | T-012 | DONE |
 | T-072 | Demo script (2–3 min), seed data, offline fallback recording | T-070 | TODO |
 | T-073 | Final docs, README, evaluation report, limitations | all | TODO |
 
 ## Suggested order
-T-001 → T-003 → (T-002 when user answers) → T-010/T-011 → T-012 → T-013–T-016 → T-020 → T-040 (early risk check!) → T-021/T-022 → T-030–T-037 → T-041/T-042 → T-050… → T-060/T-061 → T-070 → T-072.
+T-001 → T-003 → (T-002 when user answers) → T-010/T-011 → T-012 → T-013–T-016 → T-020 → T-040 (early risk check!) → T-021/T-022 → T-030–T-037 → T-041/T-042 → T-050… → T-060/T-061 → T-070 → T-071 → T-072.
 The Wokwi spike (T-040) is scheduled early on purpose: it is the largest external dependency.

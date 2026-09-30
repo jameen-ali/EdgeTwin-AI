@@ -1,0 +1,175 @@
+{
+  "benchmark": "T-071",
+  "dataset": "AI4I 2020 Predictive Maintenance (UCI, CC BY 4.0)",
+  "dataset_url": "https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset",
+  "champion_model": "edgetwin-risk@champion",
+  "frozen_threshold": 0.16,
+  "run_timestamp": "2026-09-29T19:35:10.550596+00:00",
+  "dataset_profile": {
+    "n_rows": 10000,
+    "n_cols_raw": 14,
+    "failure_rate": 0.0339,
+    "n_failures": 339,
+    "n_healthy": 9661
+  },
+  "feature_compatibility_summary": {
+    "total_production_features": 14,
+    "direct": 3,
+    "mapped": 3,
+    "derived": 2,
+    "unavailable": 6
+  },
+  "feature_compatibility": {
+    "Air_Temperature_C": {
+      "status": "MAPPED",
+      "ai4i_col": "Air temperature [K]",
+      "transform": "subtract_273.15",
+      "notes": "AI4I uses Kelvin; subtract 273.15 to get Celsius."
+    },
+    "Process_Temperature_C": {
+      "status": "MAPPED",
+      "ai4i_col": "Process temperature [K]",
+      "transform": "subtract_273.15",
+      "notes": "AI4I uses Kelvin; subtract 273.15 to get Celsius."
+    },
+    "Rotational_Speed_RPM": {
+      "status": "DIRECT",
+      "ai4i_col": "Rotational speed [rpm]",
+      "transform": "none",
+      "notes": "Identical physical quantity and unit."
+    },
+    "Torque_Nm": {
+      "status": "DIRECT",
+      "ai4i_col": "Torque [Nm]",
+      "transform": "none",
+      "notes": "Identical physical quantity and unit."
+    },
+    "Tool_Wear_Min": {
+      "status": "DIRECT",
+      "ai4i_col": "Tool wear [min]",
+      "transform": "none",
+      "notes": "Identical physical quantity and unit."
+    },
+    "Vibration_mm_s": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Not measured in AI4I 2020. Set to NaN."
+    },
+    "Pressure_bar": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Not measured in AI4I 2020. Set to NaN."
+    },
+    "Current_A": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Not measured in AI4I 2020. Set to NaN."
+    },
+    "Voltage_V": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Not measured in AI4I 2020. Set to NaN."
+    },
+    "Operating_Hours": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Not measured in AI4I 2020. Set to NaN."
+    },
+    "Machine_Type": {
+      "status": "MAPPED",
+      "ai4i_col": "Type",
+      "transform": "L->Motor, M->CNC_Machine, H->Compressor",
+      "notes": "AI4I quality variants L/M/H have no direct structural correspondence to EdgeTwin machine classes. Approximate mapping by operational complexity only. Known semantic mismatch."
+    },
+    "Delta_T_C": {
+      "status": "DERIVED",
+      "ai4i_col": "Air temperature [K], Process temperature [K]",
+      "transform": "Process_K - Air_K (delta is unit-invariant)",
+      "notes": "Temperature differential is identical in Kelvin or Celsius."
+    },
+    "Apparent_Power_VA": {
+      "status": "UNAVAILABLE",
+      "ai4i_col": null,
+      "transform": null,
+      "notes": "Cannot compute V*A: both Voltage_V and Current_A are absent. Set to NaN."
+    },
+    "Mech_Power_W": {
+      "status": "DERIVED",
+      "ai4i_col": "Rotational speed [rpm], Torque [Nm]",
+      "transform": "Torque_Nm * RPM * 2*pi / 60",
+      "notes": "Both inputs directly available from AI4I."
+    }
+  },
+  "metrics_at_frozen_threshold": {
+    "n_total": 10000,
+    "n_pos": 339,
+    "n_neg": 9661,
+    "failure_rate": 0.0339,
+    "threshold": 0.16,
+    "tp": 14,
+    "fp": 1,
+    "tn": 9660,
+    "fn": 325,
+    "precision": 0.9333333333333333,
+    "recall": 0.04129793510324484,
+    "f1": 0.07909604519774012,
+    "roc_auc": 0.7519618610726642,
+    "pr_auc": 0.2854229777134256,
+    "brier_score": 0.031832138586867835,
+    "false_alarm_rate": 0.00010350895352447987,
+    "detection_rate": 0.04129793510324484
+  },
+  "calibration": {
+    "ai4i_failure_rate": 0.0339,
+    "mean_predicted_score": 0.012767647711577568,
+    "calibration_gap": 0.021132352288422432
+  },
+  "score_distribution": {
+    "healthy_mean": 0.011910771723294938,
+    "failure_mean": 0.03718734954874125,
+    "healthy_p95": 0.015573611379746664,
+    "failure_p5": 0.010772431190774059
+  },
+  "per_failure_type": {
+    "TWF": {
+      "label": "Tool Wear Failure",
+      "n": 46,
+      "detected_at_threshold": 0,
+      "detection_rate": 0.0,
+      "mean_score": 0.020985586959802342
+    },
+    "HDF": {
+      "label": "Heat Dissipation Failure",
+      "n": 115,
+      "detected_at_threshold": 1,
+      "detection_rate": 0.008695652173913044,
+      "mean_score": 0.016456253689348083
+    },
+    "PWF": {
+      "label": "Power Failure",
+      "n": 95,
+      "detected_at_threshold": 11,
+      "detection_rate": 0.11578947368421053,
+      "mean_score": 0.0750689748056037
+    },
+    "OSF": {
+      "label": "Overstrain Failure",
+      "n": 98,
+      "detected_at_threshold": 8,
+      "detection_rate": 0.08163265306122448,
+      "mean_score": 0.06614485407227015
+    },
+    "RNF": {
+      "label": "Random Failure",
+      "n": 19,
+      "detected_at_threshold": 0,
+      "detection_rate": 0.0,
+      "mean_score": 0.012647305219622021
+    }
+  }
+}
